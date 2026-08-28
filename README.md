@@ -1,26 +1,12 @@
-# MDVGeyserCompat 1.0.5
+# MDVGeyserCompat 1.0.6
 
 Extension server-side de Geyser para MDVCRAFT (Purpur/Spigot + Geyser 2.11.x).
 
-## Cambio critico de 1.0.5
+## Cambio principal de 1.0.6
 
-La 1.0.4 quitaba el predicate de las definiciones `minecraft:*`. Eso era incorrecto: Geyser exige un predicate cuando el `item_model` esta en el namespace `minecraft`.
+Los `item_model` cuyo target es un bloque vanilla ya no se dibujan con una PNG plana. Se registran con `GeyserBlockPlacer` + `useBlockIcon=true`, que es la ruta de Geyser para que Bedrock use el render 3D nativo del bloque como icono.
 
-La 1.0.5 vuelve a usar `ItemRangeDispatchPredicate.count(1)` para todos los modelos vanilla y elimina el uso de `block_placer` como truco visual. `block_placer` esta pensado para items que colocan bloques y, con `useBlockIcon=true`, Geyser suprime el `minecraft:icon` del custom item.
-
-Ahora todos los pares reales leidos desde:
-
-```text
-plugins/MMOItems/item/
-```
-
-se registran como:
-
-```text
-material Java + minecraft:item_model -> custom item Bedrock con icono explicito
-```
-
-Incluye fallbacks internos para los casos MDVCRAFT reportados:
+Esto apunta especialmente a:
 
 ```text
 STICK -> KELP
@@ -34,16 +20,52 @@ STICK -> OCHRE_FROGLIGHT
 STICK -> PEARLESCENT_FROGLIGHT
 STICK -> VERDANT_FROGLIGHT
 STICK -> REDSTONE_BLOCK
-STICK -> SCUTE
 ```
 
-`SCUTE` conserva `turtle_shell_piece`, que ya funcionaba en Bedrock.
+Los targets que son items y no bloques, por ejemplo `SCUTE`, siguen usando el atlas/item texture normal de Bedrock.
 
-Para bloques se usa una textura de item explicita en el AutoPack en vez de hacer que el custom item finja ser un bloque colocable. Esto prioriza que el item se vea correctamente en inventario, menus, mano y drops.
+Las definiciones `minecraft:*` conservan `ItemRangeDispatchPredicate.count(1)`, ya que Geyser exige al menos un predicate para modelos del namespace `minecraft`.
+
+## Deteccion
+
+Los pares reales se leen desde:
+
+```text
+plugins/MMOItems/item/
+```
+
+No importa en cual YAML esten.
+
+## Config nueva
+
+```yaml
+item-models:
+  native-block-rendering: true
+```
+
+La opcion viene activa por defecto incluso si conservas un `config.yml` viejo que todavia no tenga esa clave.
+
+`block-id-overrides` sigue disponible por si un identificador Java y Bedrock no coincide:
+
+```yaml
+  block-id-overrides:
+    # - minecraft:algo=minecraft:otro_id_bedrock
+```
+
+## Nota importante sobre Bedrock
+
+El render 3D nativo de bloques se obtiene mediante el componente Bedrock `block_placer`. Geyser lo usa para que el cliente renderice el modelo 3D del bloque. El ItemStack real del servidor Java sigue siendo el material original, por ejemplo `STICK` o `STONE_PICKAXE`.
+
+Si algun item con habilidad de click derecho muestra una prediccion visual rara al tocar bloques desde Bedrock, se puede desactivar globalmente con:
+
+```yaml
+item-models:
+  native-block-rendering: false
+```
+
+y volver al fallback 2D.
 
 ## Reportes
-
-Se generan:
 
 ```text
 item-model-pairs-report.txt
@@ -52,23 +74,24 @@ item-model-failures-report.txt
 item-model-registration-report.txt
 ```
 
-Los modos de registro de 1.0.5 son:
+Los modos de registro ahora pueden ser:
 
 ```text
+NATIVE_BLOCK_3D(...)
 VANILLA_ATLAS
 EXPLICIT_TEXTURE
 ```
 
 ## Custom skulls Base64
 
-El sistema de skulls no cambia. Sigue usando cache y registra los perfiles Base64 en Geyser.
+No cambia. El sistema sigue usando cache y registra los perfiles Base64 en Geyser.
 
 ## Instalacion
 
 Es una extension de Geyser:
 
 ```text
-plugins/Geyser-Spigot/extensions/MDVGeyserCompat-1.0.5.jar
+plugins/Geyser-Spigot/extensions/MDVGeyserCompat-1.0.6.jar
 ```
 
 Elimina la version anterior y reinicia completamente el servidor.
@@ -84,7 +107,7 @@ mvn clean package
 Salida:
 
 ```text
-target/MDVGeyserCompat-1.0.5.jar
+target/MDVGeyserCompat-1.0.6.jar
 ```
 
 Incluye `.github/workflows/build.yml` para GitHub Actions.

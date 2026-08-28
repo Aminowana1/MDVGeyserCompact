@@ -50,6 +50,8 @@ final class CompatConfig {
 
     boolean includeBlockItems = true;
     boolean use3dBlockIcons = true;
+    // 1.0.6: render 3D nativo de Bedrock para targets que son bloques vanilla.
+    boolean nativeBlockRendering = true;
     final Map<String, String> textureOverrides = new HashMap<>();
     final Map<String, String> blockIdOverrides = new HashMap<>();
 
@@ -115,6 +117,7 @@ final class CompatConfig {
                         case "enabled" -> cfg.itemModelsEnabled = bool(value, cfg.itemModelsEnabled);
                         case "include-block-items" -> cfg.includeBlockItems = bool(value, cfg.includeBlockItems);
                         case "use-3d-block-icons" -> cfg.use3dBlockIcons = bool(value, cfg.use3dBlockIcons);
+                        case "native-block-rendering" -> cfg.nativeBlockRendering = bool(value, cfg.nativeBlockRendering);
                         case "auto-detect-pairs" -> cfg.autoDetectPairs = bool(value, cfg.autoDetectPairs);
                         case "mmoitems-only-mode" -> cfg.mmoItemsOnlyMode = bool(value, cfg.mmoItemsOnlyMode);
                         case "mmoitems-folder" -> cfg.mmoItemsFolder = unquote(value);

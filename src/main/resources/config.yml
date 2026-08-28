@@ -1,5 +1,5 @@
 # ==========================================================
-# MDVGeyserCompat 1.0.5
+# MDVGeyserCompat 1.0.6
 # Geyser Extension para MDVCRAFT
 # ==========================================================
 #
@@ -46,10 +46,17 @@ item-models:
 
   include-block-items: true
 
-  # Compatibilidad heredada. 1.0.5 NO usa block_placer para la apariencia,
-  # porque puede suprimir el icono de custom items. Los bloques se muestran
-  # mediante una textura explicita y segura en Bedrock.
+  # Compatibilidad heredada. Se conserva por compatibilidad con configs viejas.
   use-3d-block-icons: false
+
+  # 1.0.6: para item_model que apuntan a un BLOQUE vanilla, usar el render
+  # 3D nativo de Bedrock en vez de pegar una PNG plana en el slot.
+  # Esto corrige moss_block/redstone_block/froglight/obsidian/coal_block,
+  # y tambien geometria de bamboo/lightning_rod/chain/kelp.
+  #
+  # Nota: Bedrock necesita minecraft:block_placer para obtener ese render 3D.
+  # El servidor sigue recibiendo el ItemStack Java original (STICK, PICKAXE, etc.).
+  native-block-rendering: true
 
   # Overrides manuales Java item_model -> textura vanilla Bedrock.
   texture-overrides: []

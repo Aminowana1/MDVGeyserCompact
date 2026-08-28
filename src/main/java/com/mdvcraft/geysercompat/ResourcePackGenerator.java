@@ -14,8 +14,8 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 final class ResourcePackGenerator {
-    private static final UUID HEADER_UUID = UUID.fromString("71d70eb7-3261-4eab-bad7-b2f7b9b9cb65");
-    private static final UUID MODULE_UUID = UUID.fromString("c86a1ddb-3b4c-4a9d-b159-9611d5242689");
+    private static final UUID HEADER_UUID = UUID.fromString("4da2759d-5688-45d0-b855-23091db08dde");
+    private static final UUID MODULE_UUID = UUID.fromString("ac6571b2-f25e-4636-96cd-2421427aa350");
 
     private ResourcePackGenerator() {}
 
@@ -32,21 +32,23 @@ final class ResourcePackGenerator {
         for (Map.Entry<String, List<VanillaMaterialRegistry.Entry>> planned : plan.entrySet()) {
             String base = planned.getKey();
             for (VanillaMaterialRegistry.Entry target : planned.getValue()) {
+                if (target.block() && cfg.nativeBlockRendering) {
+                    String bedrockBlockId = cfg.blockIdOverrides.getOrDefault(target.id(), target.id());
+                    report.add(base + " -> " + target.id() + " = [native 3D block: " + bedrockBlockId + "]");
+                    continue;
+                }
+
                 String vanillaAtlas = VanillaTextureResolver.vanillaAtlasIconKey(target.id());
                 if (vanillaAtlas != null) {
                     report.add(base + " -> " + target.id() + " = [vanilla atlas key: " + vanillaAtlas + "]");
                     continue;
                 }
 
-                // Siempre generar un icono explicito para los modelos que no
-                // tengan shortname vanilla. Esto incluye bloques usados solo como
-                // apariencia (moss_block, redstone_block, froglight, etc.).
                 String icon = VanillaTextureResolver.iconKey(base, target.id());
                 String texture = VanillaTextureResolver.resolveIconTexture(
                         target.id(), target.block(), cfg.textureOverrides);
                 textureData.put(icon, texture);
-                report.add(base + " -> " + target.id() + " = " + texture
-                        + (target.block() ? " [block-as-item-texture]" : ""));
+                report.add(base + " -> " + target.id() + " = " + texture);
             }
         }
 
@@ -63,8 +65,8 @@ final class ResourcePackGenerator {
                 {
                   "format_version": 2,
                   "header": {
-                    "name": "MDVGeyserCompat AutoPack 1.0.5",
-                    "description": "Generated automatically by MDVGeyserCompat 1.0.5",
+                    "name": "MDVGeyserCompat AutoPack 1.0.6",
+                    "description": "Generated automatically by MDVGeyserCompat 1.0.6",
                     "uuid": "%s",
                     "version": [1, %d, %d],
                     "min_engine_version": [1, 21, 0]
