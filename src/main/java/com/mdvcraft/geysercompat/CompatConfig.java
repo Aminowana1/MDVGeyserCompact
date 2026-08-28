@@ -50,8 +50,10 @@ final class CompatConfig {
 
     boolean includeBlockItems = true;
     boolean use3dBlockIcons = true;
-    // 1.0.6: render 3D nativo de Bedrock para targets que son bloques vanilla.
-    boolean nativeBlockRendering = true;
+    // 1.0.7: conservado solo para leer configs viejas. Geyser 2.11 no permite
+    // BLOCK_PLACER en definiciones que extienden items vanilla, por lo que el
+    // registrador usa siempre fallback visual estable.
+    boolean nativeBlockRendering = false;
     final Map<String, String> textureOverrides = new HashMap<>();
     final Map<String, String> blockIdOverrides = new HashMap<>();
 

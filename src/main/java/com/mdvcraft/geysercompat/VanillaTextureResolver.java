@@ -77,12 +77,10 @@ final class VanillaTextureResolver {
         alias("scute", "textures/items/turtle_shell_piece");
         alias("turtle_scute", "textures/items/turtle_shell_piece");
 
-        // Fallback 2D si use-3d-block-icons=false. Con la opcion normal=true
-        // estos bloques usan el bloque vanilla Bedrock como icono nativo.
-        // Bamboo en Bedrock es un block item con carried_textures; no tiene un
-        // shortname fiable en atlas.items. Para nuestro custom item usamos una
-        // textura explicita del tallo, que existe en el pack vanilla.
-        alias("bamboo", "textures/blocks/bamboo_stem");
+        // 1.0.7: Geyser no permite block_placer en custom items basados en
+        // items vanilla. Usamos las mejores texturas carry/item disponibles.
+        // Bamboo tiene carried_textures=bamboo_carried -> textures/items/bamboo.
+        alias("bamboo", "textures/items/bamboo");
         alias("moss_block", "textures/blocks/moss_block");
         alias("lightning_rod", "textures/blocks/lightning_rod");
         alias("coal_block", "textures/blocks/coal_block");
@@ -92,6 +90,13 @@ final class VanillaTextureResolver {
         alias("ochre_froglight", "textures/blocks/ochre_froglight_side");
         alias("pearlescent_froglight", "textures/blocks/pearlescent_froglight_side");
         alias("verdant_froglight", "textures/blocks/verdant_froglight_side");
+        alias("mangrove_roots", "textures/blocks/mangrove_roots_side");
+        alias("twisting_vines", "textures/blocks/twisting_vines_base");
+        alias("jungle_sapling", "textures/blocks/sapling_jungle");
+        // Banners Bedrock usan un icono de item generico; el color/patrones se
+        // resuelven por datos del item vanilla, algo que un custom item no hereda.
+        alias("white_banner", "textures/items/banner");
+        alias("yellow_banner", "textures/items/banner");
 
         // Libros, botellas y pociones.
         alias("book", "textures/items/book_normal");
@@ -363,17 +368,11 @@ final class VanillaTextureResolver {
     }
 
     /**
-     * Para bloques vanilla preferimos el render nativo de Bedrock mediante
-     * block_placer + useBlockIcon. Es la unica forma generica de obtener el
-     * aspecto real de BAMBOO, MOSS_BLOCK, LIGHTNING_ROD, FROGLIGHT, etc. sin
-     * copiar manualmente texturas/geometry del cliente.
-     *
-     * KELP y CHAIN se fuerzan al atlas de items porque Bedrock ya tiene iconos
-     * vanilla estables para ellos y quedan mejor como item en menus.
+     * Compatibilidad heredada. En Geyser 2.11.x BLOCK_PLACER no puede usarse
+     * en CustomItemDefinition que extiende un item vanilla, asi que siempre false.
      */
     static boolean useNativeBlockIcon(VanillaMaterialRegistry.Entry target, boolean enabled) {
-        if (!enabled || target == null || !target.block()) return false;
-        return vanillaAtlasIconKey(target.id()) == null;
+        return false;
     }
 
     static String appearanceMode(VanillaMaterialRegistry.Entry target, boolean use3dBlockIcons) {

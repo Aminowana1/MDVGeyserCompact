@@ -9,8 +9,6 @@ import org.geysermc.geyser.api.event.lifecycle.GeyserPreInitializeEvent;
 import org.geysermc.geyser.api.extension.Extension;
 import org.geysermc.geyser.api.item.custom.v2.CustomItemBedrockOptions;
 import org.geysermc.geyser.api.item.custom.v2.CustomItemDefinition;
-import org.geysermc.geyser.api.item.custom.v2.component.geyser.GeyserBlockPlacer;
-import org.geysermc.geyser.api.item.custom.v2.component.geyser.GeyserItemDataComponents;
 import org.geysermc.geyser.api.predicate.item.ItemRangeDispatchPredicate;
 import org.geysermc.geyser.api.pack.PackCodec;
 import org.geysermc.geyser.api.pack.ResourcePack;
@@ -240,36 +238,30 @@ public final class MDVGeyserCompat implements Extension {
                     }
 
                     /*
-                     * 1.0.6: si el item_model apunta a un bloque vanilla, no usamos
-                     * una textura 2D. Geyser expone GeyserBlockPlacer#useBlockIcon,
-                     * que hace que Bedrock renderice el bloque 3D nativo como icono.
-                     * Esto corrige cubos planos, bamboo estirado y lightning_rod
-                     * recortado/desplazado.
+                     * 1.0.7: NO usar GeyserItemDataComponents.BLOCK_PLACER aqui.
+                     * Geyser 2.11.x considera estas definiciones "vanilla custom items"
+                     * porque extienden STICK/PAPER/PICKAXE/etc., y sus componentes
+                     * Geyser-only (como block_placer) son exclusivos de non-vanilla
+                     * custom items. Intentarlo produce:
+                     *   IllegalArgumentException: That component cannot be used for vanilla items
+                     *
+                     * Para que los modelos no desaparezcan, siempre registramos un
+                     * icono Bedrock valido: atlas vanilla cuando existe o una entrada
+                     * del AutoPack que apunta a la textura/carry vanilla correcta.
                      */
-                    boolean nativeBlock3d = target.block() && config.nativeBlockRendering;
-
                     CustomItemBedrockOptions.Builder bedrock = CustomItemBedrockOptions.builder()
                             .allowOffhand(true)
-                            .displayHandheld(!nativeBlock3d && VanillaTextureResolver.displayHandheld(target.id()));
+                            .displayHandheld(VanillaTextureResolver.displayHandheld(target.id()));
 
-                    String registrationMode;
-                    if (nativeBlock3d) {
-                        String bedrockBlockId = config.blockIdOverrides.getOrDefault(target.id(), target.id());
-                        definition.component(
-                                GeyserItemDataComponents.BLOCK_PLACER,
-                                GeyserBlockPlacer.of(Identifier.of(bedrockBlockId), true)
-                        );
-                        // No configuramos icon(): cuando useBlockIcon=true Geyser
-                        // omite minecraft:icon para que Bedrock use el modelo 3D.
-                        registrationMode = "NATIVE_BLOCK_3D(" + bedrockBlockId + ")";
-                    } else {
-                        String vanillaAtlas = VanillaTextureResolver.vanillaAtlasIconKey(target.id());
-                        String icon = vanillaAtlas != null
-                                ? vanillaAtlas
-                                : VanillaTextureResolver.iconKey(base, target.id());
-                        bedrock.icon(icon);
-                        registrationMode = vanillaAtlas != null ? "VANILLA_ATLAS" : "EXPLICIT_TEXTURE";
-                    }
+                    String vanillaAtlas = VanillaTextureResolver.vanillaAtlasIconKey(target.id());
+                    String icon = vanillaAtlas != null
+                            ? vanillaAtlas
+                            : VanillaTextureResolver.iconKey(base, target.id());
+                    bedrock.icon(icon);
+
+                    String registrationMode = vanillaAtlas != null
+                            ? "VANILLA_ATLAS"
+                            : (target.block() ? "BLOCK_TEXTURE_FALLBACK" : "EXPLICIT_TEXTURE");
 
                     definition.bedrockOptions(bedrock);
                     event.register(baseId, definition.build());
@@ -291,15 +283,15 @@ public final class MDVGeyserCompat implements Extension {
 
         try {
             List<String> report = new ArrayList<>();
-            report.add("# MDVGeyserCompat 1.0.6 - definiciones que Geyser no pudo registrar");
+            report.add("# MDVGeyserCompat 1.0.7 - definiciones que Geyser no pudo registrar");
             report.add("# Si queda vacio debajo de esta linea, no hubo omisiones.");
             report.add("");
             report.addAll(failureReport);
             Files.write(dataFolder().resolve("item-model-failures-report.txt"), report, StandardCharsets.UTF_8);
 
             List<String> reg = new ArrayList<>();
-            reg.add("# MDVGeyserCompat 1.0.6 - resultado de registro por item_model");
-            reg.add("# Modos: NATIVE_BLOCK_3D, VANILLA_ATLAS, EXPLICIT_TEXTURE");
+            reg.add("# MDVGeyserCompat 1.0.7 - resultado de registro por item_model");
+            reg.add("# Modos: VANILLA_ATLAS, BLOCK_TEXTURE_FALLBACK, EXPLICIT_TEXTURE");
             reg.add("");
             reg.addAll(registrationReport);
             Files.write(dataFolder().resolve("item-model-registration-report.txt"), reg, StandardCharsets.UTF_8);

@@ -14,8 +14,8 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 final class ResourcePackGenerator {
-    private static final UUID HEADER_UUID = UUID.fromString("4da2759d-5688-45d0-b855-23091db08dde");
-    private static final UUID MODULE_UUID = UUID.fromString("ac6571b2-f25e-4636-96cd-2421427aa350");
+    private static final UUID HEADER_UUID = UUID.fromString("2f34d931-19c0-4a4e-8a93-7ca917ea6107");
+    private static final UUID MODULE_UUID = UUID.fromString("f66a70b5-dc9d-4901-8e43-e5a324692107");
 
     private ResourcePackGenerator() {}
 
@@ -32,12 +32,6 @@ final class ResourcePackGenerator {
         for (Map.Entry<String, List<VanillaMaterialRegistry.Entry>> planned : plan.entrySet()) {
             String base = planned.getKey();
             for (VanillaMaterialRegistry.Entry target : planned.getValue()) {
-                if (target.block() && cfg.nativeBlockRendering) {
-                    String bedrockBlockId = cfg.blockIdOverrides.getOrDefault(target.id(), target.id());
-                    report.add(base + " -> " + target.id() + " = [native 3D block: " + bedrockBlockId + "]");
-                    continue;
-                }
-
                 String vanillaAtlas = VanillaTextureResolver.vanillaAtlasIconKey(target.id());
                 if (vanillaAtlas != null) {
                     report.add(base + " -> " + target.id() + " = [vanilla atlas key: " + vanillaAtlas + "]");
@@ -65,8 +59,8 @@ final class ResourcePackGenerator {
                 {
                   "format_version": 2,
                   "header": {
-                    "name": "MDVGeyserCompat AutoPack 1.0.6",
-                    "description": "Generated automatically by MDVGeyserCompat 1.0.6",
+                    "name": "MDVGeyserCompat AutoPack 1.0.7",
+                    "description": "Generated automatically by MDVGeyserCompat 1.0.7",
                     "uuid": "%s",
                     "version": [1, %d, %d],
                     "min_engine_version": [1, 21, 0]

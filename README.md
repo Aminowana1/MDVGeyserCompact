@@ -1,113 +1,29 @@
-# MDVGeyserCompat 1.0.6
+# MDVGeyserCompat 1.0.7
 
-Extension server-side de Geyser para MDVCRAFT (Purpur/Spigot + Geyser 2.11.x).
+Geyser Extension para MDVCRAFT (Geyser 2.11.x / Java 21).
 
-## Cambio principal de 1.0.6
+## Correccion 1.0.7
 
-Los `item_model` cuyo target es un bloque vanilla ya no se dibujan con una PNG plana. Se registran con `GeyserBlockPlacer` + `useBlockIcon=true`, que es la ruta de Geyser para que Bedrock use el render 3D nativo del bloque como icono.
+Geyser 2.11.x no permite `GeyserItemDataComponents.BLOCK_PLACER` en una `CustomItemDefinition` que extiende un item vanilla (por ejemplo STICK, PAPER o STONE_PICKAXE). La 1.0.6 intentaba usar ese componente para conseguir el icono 3D nativo de bloques y Geyser respondia:
 
-Esto apunta especialmente a:
-
-```text
-STICK -> KELP
-STONE_PICKAXE -> BAMBOO
-STICK -> MOSS_BLOCK
-STICK -> LIGHTNING_ROD
-STICK -> CHAIN
-STICK -> COAL_BLOCK
-STICK -> OBSIDIAN
-STICK -> OCHRE_FROGLIGHT
-STICK -> PEARLESCENT_FROGLIGHT
-STICK -> VERDANT_FROGLIGHT
-STICK -> REDSTONE_BLOCK
+```
+IllegalArgumentException: That component cannot be used for vanilla items
 ```
 
-Los targets que son items y no bloques, por ejemplo `SCUTE`, siguen usando el atlas/item texture normal de Bedrock.
+La 1.0.7 elimina esa ruta y usa un fallback visual estable:
 
-Las definiciones `minecraft:*` conservan `ItemRangeDispatchPredicate.count(1)`, ya que Geyser exige al menos un predicate para modelos del namespace `minecraft`.
+- atlas vanilla para items que lo tienen (`kelp`, `chain`, `scute`, etc.);
+- `carried_texture` conocida cuando Bedrock la expone (`bamboo -> textures/items/bamboo`);
+- textura de bloque valida para cubos como `moss_block`, `coal_block`, `redstone_block`, `obsidian` y froglights;
+- aliases para `mangrove_roots`, `twisting_vines`, `jungle_sapling` y banners.
 
-## Deteccion
-
-Los pares reales se leen desde:
-
-```text
-plugins/MMOItems/item/
-```
-
-No importa en cual YAML esten.
-
-## Config nueva
-
-```yaml
-item-models:
-  native-block-rendering: true
-```
-
-La opcion viene activa por defecto incluso si conservas un `config.yml` viejo que todavia no tenga esa clave.
-
-`block-id-overrides` sigue disponible por si un identificador Java y Bedrock no coincide:
-
-```yaml
-  block-id-overrides:
-    # - minecraft:algo=minecraft:otro_id_bedrock
-```
-
-## Nota importante sobre Bedrock
-
-El render 3D nativo de bloques se obtiene mediante el componente Bedrock `block_placer`. Geyser lo usa para que el cliente renderice el modelo 3D del bloque. El ItemStack real del servidor Java sigue siendo el material original, por ejemplo `STICK` o `STONE_PICKAXE`.
-
-Si algun item con habilidad de click derecho muestra una prediccion visual rara al tocar bloques desde Bedrock, se puede desactivar globalmente con:
-
-```yaml
-item-models:
-  native-block-rendering: false
-```
-
-y volver al fallback 2D.
-
-## Reportes
-
-```text
-item-model-pairs-report.txt
-item-texture-report.txt
-item-model-failures-report.txt
-item-model-registration-report.txt
-```
-
-Los modos de registro ahora pueden ser:
-
-```text
-NATIVE_BLOCK_3D(...)
-VANILLA_ATLAS
-EXPLICIT_TEXTURE
-```
-
-## Custom skulls Base64
-
-No cambia. El sistema sigue usando cache y registra los perfiles Base64 en Geyser.
+Esto prioriza que todos los `item_model` se vean y no queden omitidos/morados. Los bloques basados en un STICK no pueden usar el render 3D nativo de block-item con la API actual de Geyser; para eso Geyser tendria que permitir mapear el custom item a un block item/custom block.
 
 ## Instalacion
 
-Es una extension de Geyser:
+1. Compilar con GitHub Actions o Maven Java 21.
+2. Poner el JAR en `plugins/Geyser-Spigot/extensions/`.
+3. Dejar una sola version de MDVGeyserCompat.
+4. Reiniciar completamente el servidor.
 
-```text
-plugins/Geyser-Spigot/extensions/MDVGeyserCompat-1.0.6.jar
-```
-
-Elimina la version anterior y reinicia completamente el servidor.
-
-## Compilar
-
-Java 21 + Maven:
-
-```bash
-mvn clean package
-```
-
-Salida:
-
-```text
-target/MDVGeyserCompat-1.0.6.jar
-```
-
-Incluye `.github/workflows/build.yml` para GitHub Actions.
+La extension genera un UUID nuevo del AutoPack 1.0.7 para forzar que Bedrock no reutilice el pack anterior.
