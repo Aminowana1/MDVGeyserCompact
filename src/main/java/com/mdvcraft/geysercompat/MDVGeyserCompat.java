@@ -18,18 +18,24 @@ import org.geysermc.geyser.api.util.Identifier;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 public final class MDVGeyserCompat implements Extension {
     private CompatConfig config;
     private List<VanillaMaterialRegistry.Entry> vanillaTargets = Collections.emptyList();
+    private Map<String, List<VanillaMaterialRegistry.Entry>> itemModelPlan = Collections.emptyMap();
     private Set<String> skullProfiles = Collections.emptySet();
     private Path generatedPack;
     private Path serverRoot;
@@ -52,11 +58,17 @@ public final class MDVGeyserCompat implements Extension {
         if (config.itemModelsEnabled) {
             try {
                 vanillaTargets = VanillaMaterialRegistry.discover();
-                generatedPack = ResourcePackGenerator.generate(dataFolder(), config, vanillaTargets);
+                itemModelPlan = buildItemModelPlan(vanillaTargets);
+                generatedPack = ResourcePackGenerator.generate(dataFolder(), config, itemModelPlan);
+
+                int definitions = itemModelPlan.values().stream().mapToInt(List::size).sum();
                 logger().info("Detectados " + vanillaTargets.size() + " materiales vanilla utilizables como item_model.");
+                logger().info("item_model: " + definitions + " combinaciones preparadas para "
+                        + itemModelPlan.size() + " materiales base.");
             } catch (ReflectiveOperationException e) {
                 logger().error("No pude leer org.bukkit.Material. Esta build esta pensada para Geyser-Spigot/Purpur.", e);
                 vanillaTargets = Collections.emptyList();
+                itemModelPlan = Collections.emptyMap();
             } catch (IOException e) {
                 logger().error("No pude generar el resource pack automatico de item_model.", e);
             }
@@ -76,31 +88,109 @@ public final class MDVGeyserCompat implements Extension {
         }
 
         if (config.debug) {
-            logger().info("Bases item_model: " + config.baseItems);
+            logger().info("Bases amplias item_model: " + config.baseItems);
             logger().info("Preparacion total: " + (System.currentTimeMillis() - started) + " ms.");
         }
     }
 
+    /**
+     * 1.0.2: las bases amplias (STICK/APPLE por defecto) siguen soportando todos
+     * los targets. Ademas se escanean las configs del servidor para detectar
+     * combinaciones reales como STONE_PICKAXE->BAMBOO, TRIDENT->DIAMOND_AXE,
+     * PAPER->TRIPWIRE_HOOK, SALMON->GOLDEN_APPLE, etc.
+     *
+     * Registrar TODOS x TODOS seria mas de un millon de custom items; detectar
+     * los pares usados nos da el mismo resultado practico sin castigar Geyser.
+     */
+    private Map<String, List<VanillaMaterialRegistry.Entry>> buildItemModelPlan(
+            List<VanillaMaterialRegistry.Entry> targets) throws IOException {
+
+        Map<String, VanillaMaterialRegistry.Entry> byId = new HashMap<>();
+        Set<String> validItems = new LinkedHashSet<>();
+        for (VanillaMaterialRegistry.Entry entry : targets) {
+            byId.put(entry.id(), entry);
+            validItems.add(entry.id());
+        }
+
+        Map<String, LinkedHashSet<VanillaMaterialRegistry.Entry>> mutable = new LinkedHashMap<>();
+
+        // Bases amplias: se les permite verse como cualquier item/bloque vanilla.
+        for (String rawBase : config.baseItems) {
+            String base = CompatConfig.normalizeId(rawBase);
+            if (!validItems.contains(base)) {
+                logger().warning("Base item_model desconocida/invalidada: " + base);
+                continue;
+            }
+
+            LinkedHashSet<VanillaMaterialRegistry.Entry> entries =
+                    mutable.computeIfAbsent(base, ignored -> new LinkedHashSet<>());
+            for (VanillaMaterialRegistry.Entry target : targets) {
+                if (!config.includeBlockItems && target.block()) continue;
+                if (!target.id().equals(base)) entries.add(target);
+            }
+        }
+
+        // Pares exactos detectados en YAML/JSON/TXT de los plugins.
+        ItemModelPairScanner.Result scanned = ItemModelPairScanner.scan(serverRoot, config, validItems);
+        for (Map.Entry<String, Set<String>> pair : scanned.pairs().entrySet()) {
+            String base = pair.getKey();
+            if (!validItems.contains(base)) continue;
+
+            LinkedHashSet<VanillaMaterialRegistry.Entry> entries =
+                    mutable.computeIfAbsent(base, ignored -> new LinkedHashSet<>());
+            for (String targetId : pair.getValue()) {
+                VanillaMaterialRegistry.Entry target = byId.get(targetId);
+                if (target == null) continue;
+                if (!config.includeBlockItems && target.block()) continue;
+                if (!target.id().equals(base)) entries.add(target);
+            }
+        }
+
+        writePairReport(scanned);
+        logger().info("item_model: " + scanned.pairCount() + " pares base->modelo detectados en "
+                + scanned.filesScanned() + " archivos (" + scanned.millis() + " ms)." );
+
+        // Orden estable = pack/report reproducible y menos cache churn del cliente Bedrock.
+        Map<String, List<VanillaMaterialRegistry.Entry>> stable = new LinkedHashMap<>();
+        mutable.keySet().stream().sorted().forEach(base -> {
+            List<VanillaMaterialRegistry.Entry> entries = new ArrayList<>(mutable.get(base));
+            entries.sort(Comparator.comparing(VanillaMaterialRegistry.Entry::id));
+            if (!entries.isEmpty()) stable.put(base, List.copyOf(entries));
+        });
+        return Collections.unmodifiableMap(stable);
+    }
+
+    private void writePairReport(ItemModelPairScanner.Result scanned) throws IOException {
+        List<String> lines = new ArrayList<>();
+        lines.add("# MDVGeyserCompat 1.0.2 - pares item_model detectados automaticamente");
+        lines.add("# Formato: BASE -> MODELO");
+        lines.add("");
+        for (Map.Entry<String, Set<String>> entry : scanned.pairs().entrySet()) {
+            for (String target : entry.getValue()) {
+                lines.add(entry.getKey() + " -> " + target);
+            }
+        }
+        Files.write(dataFolder().resolve("item-model-pairs-report.txt"), lines, StandardCharsets.UTF_8);
+    }
+
     @Subscribe
     public void onDefineCustomItems(GeyserDefineCustomItemsEvent event) {
-        if (config == null || !config.itemModelsEnabled || vanillaTargets.isEmpty()) return;
+        if (config == null || !config.itemModelsEnabled || itemModelPlan.isEmpty()) return;
 
         int registered = 0;
         int failed = 0;
-        for (String baseRaw : config.baseItems) {
-            String base = CompatConfig.normalizeId(baseRaw);
+
+        for (Map.Entry<String, List<VanillaMaterialRegistry.Entry>> planned : itemModelPlan.entrySet()) {
+            String base = planned.getKey();
             Identifier baseId;
             try {
                 baseId = Identifier.of(base);
             } catch (Exception e) {
-                logger().warning("Base item invalida en config: " + base);
+                logger().warning("Base item invalida: " + base);
                 continue;
             }
 
-            for (VanillaMaterialRegistry.Entry target : vanillaTargets) {
-                if (!config.includeBlockItems && target.block()) continue;
-                if (target.id().equals(base)) continue;
-
+            for (VanillaMaterialRegistry.Entry target : planned.getValue()) {
                 try {
                     String bedrockCustomId = VanillaTextureResolver.bedrockIdentifier(base, target.id());
                     Identifier targetModel = Identifier.of(target.id());
@@ -110,21 +200,23 @@ public final class MDVGeyserCompat implements Extension {
                             targetModel
                     );
 
-                    // Geyser exige al menos un predicate para item_model del namespace minecraft.
-                    // count(1) es verdadero para cualquier stack real y no exige modificar el item Java.
+                    // El modelo minecraft:* requiere predicate. count(1) es verdadero
+                    // para cualquier stack real y no requiere modificar el item Java.
                     definition.predicate(ItemRangeDispatchPredicate.count(1));
 
-                    // TODOS los custom items reciben un icono. En 1.0.0 los modelos
-                    // que apuntaban a bloques no lo recibian si use-3d-block-icons=true;
-                    // por eso podian verse en mano/dropeados pero fallaban en inventarios/menus.
                     CustomItemBedrockOptions.Builder bedrock = CustomItemBedrockOptions.builder()
                             .allowOffhand(true)
                             .displayHandheld(VanillaTextureResolver.displayHandheld(target.id()))
                             .icon(VanillaTextureResolver.iconKey(base, target.id()));
 
-                    // Se conserva el render/comportamiento 3D previo para no romper lo que ya
-                    // funcionaba fuera de GUIs, pero ahora tambien existe siempre el icono 2D.
-                    if (target.block() && config.use3dBlockIcons) {
+                    /*
+                     * IMPORTANTE 1.0.2:
+                     * Girasoles, bambu, flores, tripwire hook y otros bloques no
+                     * solidos NO deben usar el block icon 3D de Bedrock. Hacerlo
+                     * producia modelos equivocados/missing texture, especialmente
+                     * en menus. Solo bloques solidos conservan el render 3D.
+                     */
+                    if (target.block() && target.solid() && config.use3dBlockIcons) {
                         String bedrockBlock = config.blockIdOverrides.getOrDefault(target.id(), target.id());
                         definition.component(
                                 GeyserItemDataComponents.BLOCK_PLACER,
@@ -138,7 +230,8 @@ public final class MDVGeyserCompat implements Extension {
                 } catch (Throwable throwable) {
                     failed++;
                     if (config.debug) {
-                        logger().warning("No se pudo registrar " + base + " -> " + target.id() + ": " + throwable.getMessage());
+                        logger().warning("No se pudo registrar " + base + " -> " + target.id()
+                                + ": " + throwable.getMessage());
                     }
                 }
             }

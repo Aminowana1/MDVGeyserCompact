@@ -106,6 +106,33 @@ final class VanillaTextureResolver {
         alias("golden_apple", "textures/items/apple_golden");
         alias("shield", "textures/entity/shield");
 
+        // Items que Bukkit considera bloque pero cuya representacion de inventario
+        // en Bedrock vive en el atlas de items o usa un nombre legacy.
+        alias("bamboo", "textures/items/bamboo");
+        alias("tripwire_hook", "textures/blocks/trip_wire_source");
+        alias("campfire", "textures/items/campfire");
+        alias("soul_campfire", "textures/items/soul_campfire");
+        alias("lantern", "textures/items/lantern");
+        alias("soul_lantern", "textures/items/soul_lantern");
+        alias("bell", "textures/items/villagebell");
+        alias("sea_pickle", "textures/items/sea_pickle");
+        alias("turtle_egg", "textures/items/turtle_egg");
+        alias("chain", "textures/items/chain");
+        alias("lever", "textures/items/lever");
+        alias("brewing_stand", "textures/items/brewing_stand");
+        alias("cauldron", "textures/items/cauldron");
+        alias("flower_pot", "textures/items/flower_pot");
+        alias("repeater", "textures/items/repeater");
+        alias("comparator", "textures/items/comparator");
+
+        // Carried icons de plantas modernas (1.20-1.21.x).
+        alias("pink_petals", "textures/items/pink_petals");
+        alias("wildflowers", "textures/items/wildflowers");
+        alias("firefly_bush", "textures/items/firefly_bush");
+        alias("bush", "textures/items/bush");
+        alias("leaf_litter", "textures/items/leaf_litter");
+        alias("resin_clump", "textures/items/resin_clump");
+
         // Puertas vanilla con nombres historicos en Bedrock.
         alias("oak_door", "textures/items/door_wood");
         alias("iron_door", "textures/items/door_iron");
@@ -194,6 +221,41 @@ final class VanillaTextureResolver {
         alias("music_disc_precipice", "textures/items/music_disc_precipice");
         alias("music_disc_tears", "textures/items/music_disc_tears");
         alias("music_disc_lava_chicken", "textures/items/music_disc_lava_chicken");
+
+        // Plantas/flores: Bedrock conserva nombres historicos en terrain/items.
+        // Para estos NO usamos block_placer 3D: son bloques no-solidos y el
+        // render de inventario correcto es una textura plana/carry.
+        block("sunflower", "textures/blocks/double_plant_sunflower_front");
+        block("lilac", "textures/blocks/double_plant_syringa_top");
+        block("rose_bush", "textures/blocks/double_plant_rose_top");
+        block("peony", "textures/blocks/double_plant_paeonia_top");
+        block("tall_grass", "textures/blocks/double_plant_grass_carried");
+        block("large_fern", "textures/blocks/double_plant_fern_carried");
+        block("dandelion", "textures/blocks/flower_dandelion");
+        block("poppy", "textures/blocks/flower_rose");
+        block("blue_orchid", "textures/blocks/flower_blue_orchid");
+        block("allium", "textures/blocks/flower_allium");
+        block("azure_bluet", "textures/blocks/flower_houstonia");
+        block("red_tulip", "textures/blocks/flower_tulip_red");
+        block("orange_tulip", "textures/blocks/flower_tulip_orange");
+        block("white_tulip", "textures/blocks/flower_tulip_white");
+        block("pink_tulip", "textures/blocks/flower_tulip_pink");
+        block("oxeye_daisy", "textures/blocks/flower_oxeye_daisy");
+        block("cornflower", "textures/blocks/flower_cornflower");
+        block("lily_of_the_valley", "textures/blocks/flower_lily_of_the_valley");
+        block("wither_rose", "textures/blocks/flower_wither_rose");
+        block("torchflower", "textures/blocks/torchflower");
+        block("pitcher_plant", "textures/blocks/pitcher_crop_top_stage_4");
+        block("open_eyeblossom", "textures/blocks/eyeblossom_blooming");
+        block("closed_eyeblossom", "textures/blocks/eyeblossom_dormant");
+        block("pale_hanging_moss", "textures/blocks/pale_hanging_moss_middle");
+        block("dead_bush", "textures/blocks/deadbush");
+        block("short_grass", "textures/blocks/tallgrass");
+        block("fern", "textures/blocks/fern");
+        block("vine", "textures/blocks/vine_carried");
+        block("lily_pad", "textures/blocks/waterlily");
+        block("cactus", "textures/blocks/cactus_side");
+        block("sugar_cane", "textures/blocks/reeds");
 
         // Bloques clasicos cuyo nombre de textura Bedrock no coincide con Java.
         block("grass_block", "textures/blocks/grass_side_carried");

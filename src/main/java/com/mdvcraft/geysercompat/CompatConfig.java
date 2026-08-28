@@ -13,12 +13,29 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Parser deliberadamente pequeño para el config.yml incluido con la extension.
+ * Parser deliberadamente pequeno para el config.yml incluido con la extension.
  * Evita empaquetar dependencias extra dentro de una Geyser Extension.
  */
 final class CompatConfig {
     boolean itemModelsEnabled = true;
+
+    /**
+     * Bases "amplias": para cada una se registran TODOS los modelos vanilla.
+     * Se mantienen STICK y APPLE porque son los casos de prueba/uso general de MDVCRAFT.
+     */
     final List<String> baseItems = new ArrayList<>(List.of("minecraft:stick", "minecraft:apple"));
+
+    /**
+     * Desde 1.0.2 detectamos pares material+model en configs y registramos solo esos pares.
+     * Asi un TRIDENT->DIAMOND_AXE o STONE_PICKAXE->BLAZE_ROD funciona sin meter el material
+     * base manualmente en base-items ni explotar la cantidad de custom items.
+     */
+    boolean autoDetectPairs = true;
+    final List<String> pairScanRoots = new ArrayList<>(List.of("plugins"));
+    final Set<String> pairScanExtensions = new HashSet<>(Set.of("yml", "yaml", "json", "txt", "conf", "properties"));
+    int pairScanMaxFileSizeMb = 16;
+    final List<String> manualPairs = new ArrayList<>();
+
     boolean includeBlockItems = true;
     boolean use3dBlockIcons = true;
     final Map<String, String> textureOverrides = new HashMap<>();
@@ -45,6 +62,9 @@ final class CompatConfig {
         String key = "";
 
         boolean baseItemsSeen = false;
+        boolean pairRootsSeen = false;
+        boolean pairExtSeen = false;
+        boolean manualPairsSeen = false;
         boolean rootsSeen = false;
         boolean extSeen = false;
         boolean manualSeen = false;
@@ -83,10 +103,30 @@ final class CompatConfig {
                         case "enabled" -> cfg.itemModelsEnabled = bool(value, cfg.itemModelsEnabled);
                         case "include-block-items" -> cfg.includeBlockItems = bool(value, cfg.includeBlockItems);
                         case "use-3d-block-icons" -> cfg.use3dBlockIcons = bool(value, cfg.use3dBlockIcons);
+                        case "auto-detect-pairs" -> cfg.autoDetectPairs = bool(value, cfg.autoDetectPairs);
+                        case "pair-scan-max-file-size-mb" -> cfg.pairScanMaxFileSizeMb = integer(value, cfg.pairScanMaxFileSizeMb);
                         case "base-items" -> {
                             if (!baseItemsSeen) {
                                 cfg.baseItems.clear();
                                 baseItemsSeen = true;
+                            }
+                        }
+                        case "pair-scan-roots" -> {
+                            if (!pairRootsSeen) {
+                                cfg.pairScanRoots.clear();
+                                pairRootsSeen = true;
+                            }
+                        }
+                        case "pair-scan-extensions" -> {
+                            if (!pairExtSeen) {
+                                cfg.pairScanExtensions.clear();
+                                pairExtSeen = true;
+                            }
+                        }
+                        case "manual-pairs" -> {
+                            if (!manualPairsSeen) {
+                                cfg.manualPairs.clear();
+                                manualPairsSeen = true;
                             }
                         }
                     }
@@ -131,6 +171,9 @@ final class CompatConfig {
                 if (section.equals("item-models")) {
                     switch (key) {
                         case "base-items" -> cfg.baseItems.add(normalizeId(value));
+                        case "pair-scan-roots" -> cfg.pairScanRoots.add(value);
+                        case "pair-scan-extensions" -> cfg.pairScanExtensions.add(value.toLowerCase(Locale.ROOT).replace(".", ""));
+                        case "manual-pairs" -> cfg.manualPairs.add(value);
                         case "texture-overrides" -> putPair(cfg.textureOverrides, value);
                         case "block-id-overrides" -> putPair(cfg.blockIdOverrides, value);
                     }
@@ -145,6 +188,7 @@ final class CompatConfig {
         }
 
         if (cfg.baseItems.isEmpty()) cfg.baseItems.add("minecraft:stick");
+        if (cfg.pairScanRoots.isEmpty()) cfg.pairScanRoots.add("plugins");
         if (cfg.scanRoots.isEmpty()) cfg.scanRoots.add("plugins");
         return cfg;
     }

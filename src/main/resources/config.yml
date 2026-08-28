@@ -1,5 +1,5 @@
 # ==========================================================
-# MDVGeyserCompat 1.0.1
+# MDVGeyserCompat 1.0.2
 # Geyser Extension para MDVCRAFT
 # ==========================================================
 #
@@ -14,59 +14,77 @@
 item-models:
   enabled: true
 
-  # Registra TODOS los item_model vanilla como apariencia para estos
-  # materiales base. STICK es el caso principal de MDVCRAFT.
+  # Bases "amplias": estas pueden verse como CUALQUIER item/bloque vanilla.
+  # STICK es la base principal de MDVCRAFT; APPLE queda por compat/pruebas.
   #
-  # Ejemplos:
-  # /give @s stick[minecraft:item_model="minecraft:diamond_pickaxe"]
-  # /give @s stick[minecraft:item_model="minecraft:chorus_fruit"]
-  #
-  # Puedes agregar otras bases si las usas, por ejemplo minecraft:apple.
-  # NO pongas todos los materiales aqui: cada base multiplica la cantidad
-  # de definiciones registradas en Bedrock.
+  # NO pongas todos los materiales aqui: cada base amplia registra ~1400
+  # definiciones. Para TRIDENT, STONE_PICKAXE, PAPER, comida, etc. la 1.0.2
+  # detecta automaticamente solo los pares que realmente usas en configs.
   base-items:
     - minecraft:stick
     - minecraft:apple
 
+  # Detecta material + model/item_model en YAML/JSON/TXT del servidor.
+  # Ejemplos que ya no necesitan ir en base-items:
+  #   material: TRIDENT       + model: diamond_axe
+  #   material: STONE_PICKAXE + model: bamboo
+  #   material: PAPER         + model: tripwire_hook
+  auto-detect-pairs: true
+
+  pair-scan-roots:
+    - plugins
+
+  pair-scan-extensions:
+    - yml
+    - yaml
+    - json
+    - txt
+    - conf
+    - properties
+
+  pair-scan-max-file-size-mb: 16
+
+  # Para una combinacion creada por codigo y no visible en configs, agregala aca.
+  # Formato BASE=>MODELO. Solo registra ese par, no 1400 modelos.
+  manual-pairs: []
+  # - minecraft:stone_pickaxe=>minecraft:feather
+  # - minecraft:paper=>minecraft:tripwire_hook
+  # - minecraft:salmon=>minecraft:golden_apple
+
   # Incluye materiales que tambien son bloques.
   include-block-items: true
 
-  # Conserva la representacion 3D previa para targets que son bloques.
-  # Desde 1.0.1 SIEMPRE se genera ademas un icono 2D para inventarios/menus,
-  # por lo que ya no deberian aparecer sin textura en una GUI.
+  # Solo los bloques SOLIDOS usan el render 3D de bloque Bedrock.
+  # Plantas/flores/bambu/tripwire/etc. usan icono plano/carry para evitar
+  # missing textures y modelos equivocados, sobre todo en menus.
   use-3d-block-icons: true
 
-  # Overrides manuales para excepciones Java -> textura vanilla Bedrock.
-  # Formato: minecraft:item=bedrock_texture_path
-  # No pongas .png al final.
+  # Overrides manuales Java -> textura vanilla Bedrock.
+  # Formato: minecraft:item=bedrock_texture_path (sin .png)
   texture-overrides: []
   # - minecraft:mi_item=textures/items/ruta_real
   # - minecraft:mi_bloque=textures/blocks/ruta_real
 
   # Overrides cuando el ID de bloque Java y Bedrock no coincidan.
-  # Solo afecta al componente 3D de bloques.
-  # Formato: minecraft:java_block=minecraft:bedrock_block
+  # Solo afecta al componente 3D de bloques SOLIDOS.
   block-id-overrides: []
 
 skulls:
   enabled: true
 
-  # Cachea los perfiles encontrados. Con esto NO vuelve a revisar cientos
-  # de jars/configs en cada reinicio.
+  # Cachea los perfiles encontrados. No vuelve a revisar cientos de jars/configs
+  # en cada reinicio.
   cache-enabled: true
 
   # Ponlo true SOLO para un reinicio cuando agregues muchas cabezas nuevas.
   # Luego vuelvelo a false.
   rebuild-cache: false
 
-  # Busca automaticamente Base64 de texturas de cabezas en configs/plugins.
   scan-server-files: true
 
-  # Rutas relativas a la raiz del servidor.
   scan-roots:
     - plugins
 
-  # Archivos de texto/config que se revisan.
   text-extensions:
     - yml
     - yaml
@@ -75,16 +93,12 @@ skulls:
     - conf
     - properties
 
-  # Tambien busca strings Base64 incrustados dentro de .jar/.class.
   # Solo se hace al construir/reconstruir la cache.
   scan-jars: true
 
-  # Limites de seguridad para no leer archivos gigantes accidentalmente.
   max-file-size-mb: 16
   max-jar-entry-mb: 4
 
-  # Puedes registrar una textura manualmente si no fue detectada.
   manual-profiles: []
-  # - eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvLi4uIn19fQ==
 
 debug: false
