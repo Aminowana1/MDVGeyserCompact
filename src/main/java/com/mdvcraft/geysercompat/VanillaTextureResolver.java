@@ -15,6 +15,12 @@ import java.util.Set;
 final class VanillaTextureResolver {
     private static final Map<String, String> EXACT = new HashMap<>();
     private static final Map<String, String> BLOCK_EXACT = new HashMap<>();
+    /**
+     * Shortnames que YA existen en el atlas vanilla de Bedrock.
+     * Usarlos directamente es mas robusto que volver a declarar la textura
+     * dentro de nuestro item_texture.json.
+     */
+    private static final Map<String, String> VANILLA_ATLAS = new HashMap<>();
     private static final Set<String> HANDHELD_EXACT = Set.of(
             "bow", "crossbow", "trident", "mace", "fishing_rod", "carrot_on_a_stick",
             "warped_fungus_on_a_stick", "stick", "blaze_rod", "breeze_rod", "brush"
@@ -52,17 +58,27 @@ final class VanillaTextureResolver {
         alias("fire_charge", "textures/items/fireball");
 
         // Casos usados por MMOItems de MDVCRAFT.
-        // Mojang Bedrock conserva kelp/chain/bamboo como iconos de item.
-        alias("kelp", "textures/items/kelp");
-        alias("bamboo", "textures/items/bamboo");
-        alias("chain", "textures/items/chain");
+        // 1.0.4: cuando Bedrock ya expone un shortname vanilla, lo reutilizamos
+        // directamente. Esto evita missing textures por rutas historicas.
+        atlas("kelp", "kelp");
+        atlas("chain", "chain");
+        atlas("golden_apple", "apple_golden");
+        atlas("enchanted_golden_apple", "apple_golden");
+        atlas("feather", "feather");
+        atlas("stick", "stick");
+        atlas("blaze_rod", "blaze_rod");
+        atlas("breeze_rod", "breeze_rod");
 
-        // Scute fue renombrado en versiones modernas. Aceptamos ambos nombres de modelo.
-        alias("scute", "textures/items/turtle_scute");
-        alias("turtle_scute", "textures/items/turtle_scute");
+        // En Bedrock la textura historica de Turtle Scute sigue usando
+        // turtle_shell_piece. El item Java moderno es turtle_scute, pero MMOItems
+        // puede seguir enviando minecraft:scute como item_model.
+        atlas("scute", "turtle_shell_piece");
+        atlas("turtle_scute", "turtle_shell_piece");
+        alias("scute", "textures/items/turtle_shell_piece");
+        alias("turtle_scute", "textures/items/turtle_shell_piece");
 
-        // Bloques usados como item_model: el icono del custom item puede apuntar
-        // directamente a una textura del atlas de bloques de Bedrock.
+        // Fallback 2D si use-3d-block-icons=false. Con la opcion normal=true
+        // estos bloques usan el bloque vanilla Bedrock como icono nativo.
         alias("moss_block", "textures/blocks/moss_block");
         alias("lightning_rod", "textures/blocks/lightning_rod");
         alias("coal_block", "textures/blocks/coal_block");
@@ -332,6 +348,36 @@ final class VanillaTextureResolver {
 
     private VanillaTextureResolver() {}
 
+    /**
+     * Devuelve un shortname ya presente en atlas.items del pack vanilla de
+     * Bedrock, o null si debemos generar una entrada propia.
+     */
+    static String vanillaAtlasIconKey(String javaId) {
+        String normalized = CompatConfig.normalizeId(javaId);
+        String path = normalized.substring(normalized.indexOf(':') + 1);
+        return VANILLA_ATLAS.get(path);
+    }
+
+    /**
+     * Para bloques vanilla preferimos el render nativo de Bedrock mediante
+     * block_placer + useBlockIcon. Es la unica forma generica de obtener el
+     * aspecto real de BAMBOO, MOSS_BLOCK, LIGHTNING_ROD, FROGLIGHT, etc. sin
+     * copiar manualmente texturas/geometry del cliente.
+     *
+     * KELP y CHAIN se fuerzan al atlas de items porque Bedrock ya tiene iconos
+     * vanilla estables para ellos y quedan mejor como item en menus.
+     */
+    static boolean useNativeBlockIcon(VanillaMaterialRegistry.Entry target, boolean enabled) {
+        if (!enabled || target == null || !target.block()) return false;
+        return vanillaAtlasIconKey(target.id()) == null;
+    }
+
+    static String appearanceMode(VanillaMaterialRegistry.Entry target, boolean use3dBlockIcons) {
+        if (useNativeBlockIcon(target, use3dBlockIcons)) return "NATIVE_BLOCK";
+        if (vanillaAtlasIconKey(target.id()) != null) return "VANILLA_ATLAS";
+        return "GENERATED_TEXTURE";
+    }
+
     static String resolveIconTexture(String javaId, boolean block, Map<String, String> overrides) {
         String normalized = CompatConfig.normalizeId(javaId);
         String manual = overrides.get(normalized);
@@ -465,6 +511,10 @@ final class VanillaTextureResolver {
                 .replace(':', '_')
                 .replace('/', '_')
                 .replaceAll("[^a-z0-9._-]", "_");
+    }
+
+    private static void atlas(String id, String shortname) {
+        VANILLA_ATLAS.put(id, shortname);
     }
 
     private static void alias(String id, String texture) {

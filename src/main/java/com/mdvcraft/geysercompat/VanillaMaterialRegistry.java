@@ -8,8 +8,8 @@ import java.util.Locale;
 
 final class VanillaMaterialRegistry {
     /**
-     * solid solo se usa para decidir si conviene pedir a Bedrock el icono/render
-     * 3D de bloque. Plantas, tripwire, flores, etc. deben quedar como item 2D.
+     * solid se conserva como metadato diagnostico/fallback. En 1.0.4 la
+     * decision principal es si el target es un bloque vanilla Bedrock.
      */
     record Entry(String id, boolean block, boolean solid) {}
 

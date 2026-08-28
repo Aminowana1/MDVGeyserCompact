@@ -14,8 +14,8 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 final class ResourcePackGenerator {
-    private static final UUID HEADER_UUID = UUID.fromString("d5bd9e27-2a93-4f50-8c4f-49b5f4bb1c41");
-    private static final UUID MODULE_UUID = UUID.fromString("afe301ef-ec6f-4df0-8c70-64c4c033a81f");
+    private static final UUID HEADER_UUID = UUID.fromString("8ff6b9ee-4f93-4b48-a896-4cc4be7d8a14");
+    private static final UUID MODULE_UUID = UUID.fromString("b6c33cc3-b352-4bd7-a3da-90b5b2f66d2e");
 
     private ResourcePackGenerator() {}
 
@@ -32,12 +32,25 @@ final class ResourcePackGenerator {
         for (Map.Entry<String, List<VanillaMaterialRegistry.Entry>> planned : plan.entrySet()) {
             String base = planned.getKey();
             for (VanillaMaterialRegistry.Entry target : planned.getValue()) {
+                String mode = VanillaTextureResolver.appearanceMode(target, cfg.use3dBlockIcons);
+
+                if (mode.equals("NATIVE_BLOCK")) {
+                    report.add(base + " -> " + target.id() + " = [native Bedrock block icon]");
+                    continue;
+                }
+
+                String vanillaAtlas = VanillaTextureResolver.vanillaAtlasIconKey(target.id());
+                if (vanillaAtlas != null) {
+                    report.add(base + " -> " + target.id() + " = [vanilla atlas key: " + vanillaAtlas + "]");
+                    continue;
+                }
+
                 String icon = VanillaTextureResolver.iconKey(base, target.id());
                 String texture = VanillaTextureResolver.resolveIconTexture(
                         target.id(), target.block(), cfg.textureOverrides);
                 textureData.put(icon, texture);
                 report.add(base + " -> " + target.id() + " = " + texture
-                        + (target.block() ? (target.solid() ? " [block-solid]" : " [block-flat]") : ""));
+                        + (target.block() ? (target.solid() ? " [block-solid-fallback]" : " [block-flat-fallback]") : ""));
             }
         }
 
@@ -54,8 +67,8 @@ final class ResourcePackGenerator {
                 {
                   "format_version": 2,
                   "header": {
-                    "name": "MDVGeyserCompat AutoPack",
-                    "description": "Generated automatically by MDVGeyserCompat",
+                    "name": "MDVGeyserCompat AutoPack 1.0.4",
+                    "description": "Generated automatically by MDVGeyserCompat 1.0.4",
                     "uuid": "%s",
                     "version": [1, %d, %d],
                     "min_engine_version": [1, 21, 0]

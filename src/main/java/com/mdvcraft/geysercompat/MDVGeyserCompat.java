@@ -13,7 +13,6 @@ import org.geysermc.geyser.api.item.custom.v2.component.geyser.GeyserBlockPlacer
 import org.geysermc.geyser.api.item.custom.v2.component.geyser.GeyserItemDataComponents;
 import org.geysermc.geyser.api.pack.PackCodec;
 import org.geysermc.geyser.api.pack.ResourcePack;
-import org.geysermc.geyser.api.predicate.item.ItemRangeDispatchPredicate;
 import org.geysermc.geyser.api.util.Identifier;
 
 import java.io.IOException;
@@ -163,7 +162,7 @@ public final class MDVGeyserCompat implements Extension {
 
     private void writePairReport(ItemModelPairScanner.Result scanned) throws IOException {
         List<String> lines = new ArrayList<>();
-        lines.add("# MDVGeyserCompat 1.0.3 - pares item_model detectados automaticamente");
+        lines.add("# MDVGeyserCompat 1.0.4 - pares item_model detectados automaticamente");
         lines.add("# Formato: BASE -> MODELO");
         lines.add("");
         for (Map.Entry<String, Set<String>> entry : scanned.pairs().entrySet()) {
@@ -181,6 +180,7 @@ public final class MDVGeyserCompat implements Extension {
         int registered = 0;
         int failed = 0;
         List<String> failureReport = new ArrayList<>();
+        List<String> registrationReport = new ArrayList<>();
 
         for (Map.Entry<String, List<VanillaMaterialRegistry.Entry>> planned : itemModelPlan.entrySet()) {
             String base = planned.getKey();
@@ -202,38 +202,49 @@ public final class MDVGeyserCompat implements Extension {
                             targetModel
                     );
 
-                    // El modelo minecraft:* requiere predicate. count(1) es verdadero
-                    // para cualquier stack real y no requiere modificar el item Java.
-                    definition.predicate(ItemRangeDispatchPredicate.count(1));
+                    /*
+                     * 1.0.4: NO usamos un predicate count(1). Para una combinacion
+                     * Java-item + item_model solo puede existir una definicion sin
+                     * predicados, y eso es exactamente lo que tenemos aqui. Evitar
+                     * predicates elimina una capa de matching innecesaria y varios
+                     * casos raros de Geyser con modelos vanilla.
+                     */
+
+                    boolean nativeBlockIcon = VanillaTextureResolver.useNativeBlockIcon(
+                            target, config.use3dBlockIcons);
+                    String vanillaAtlas = VanillaTextureResolver.vanillaAtlasIconKey(target.id());
 
                     CustomItemBedrockOptions.Builder bedrock = CustomItemBedrockOptions.builder()
                             .allowOffhand(true)
-                            .displayHandheld(VanillaTextureResolver.displayHandheld(target.id()))
-                            .icon(VanillaTextureResolver.iconKey(base, target.id()));
+                            .displayHandheld(VanillaTextureResolver.displayHandheld(target.id()));
 
-                    /*
-                     * IMPORTANTE 1.0.3:
-                     * Girasoles, bambu, flores, tripwire hook y otros bloques no
-                     * solidos NO deben usar el block icon 3D de Bedrock. Hacerlo
-                     * producia modelos equivocados/missing texture, especialmente
-                     * en menus. Solo bloques solidos conservan el render 3D.
-                     */
-                    if (target.block() && target.solid() && config.use3dBlockIcons) {
+                    if (nativeBlockIcon) {
                         String bedrockBlock = config.blockIdOverrides.getOrDefault(target.id(), target.id());
                         definition.component(
                                 GeyserItemDataComponents.BLOCK_PLACER,
                                 GeyserBlockPlacer.of(Identifier.of(bedrockBlock), true)
                         );
+                        // No se envia icon: Geyser usara el render nativo del bloque.
+                    } else if (vanillaAtlas != null) {
+                        // Reutiliza el shortname del atlas vanilla de Bedrock.
+                        bedrock.icon(vanillaAtlas);
+                    } else {
+                        // Fallback para herramientas/items cuyo atlas necesita una
+                        // ruta concreta (diamond_sword, gold_axe, etc.).
+                        bedrock.icon(VanillaTextureResolver.iconKey(base, target.id()));
                     }
 
                     definition.bedrockOptions(bedrock);
                     event.register(baseId, definition.build());
                     registered++;
+                    registrationReport.add(base + " -> " + target.id() + " :: OK :: "
+                            + VanillaTextureResolver.appearanceMode(target, config.use3dBlockIcons));
                 } catch (Throwable throwable) {
                     failed++;
                     String reason = throwable.getClass().getSimpleName() + ": "
                             + String.valueOf(throwable.getMessage());
                     failureReport.add(base + " -> " + target.id() + " :: " + reason);
+                    registrationReport.add(base + " -> " + target.id() + " :: FAIL :: " + reason);
                     if (config.debug) {
                         logger().warning("No se pudo registrar " + base + " -> " + target.id()
                                 + ": " + throwable.getMessage());
@@ -244,11 +255,18 @@ public final class MDVGeyserCompat implements Extension {
 
         try {
             List<String> report = new ArrayList<>();
-            report.add("# MDVGeyserCompat 1.0.3 - definiciones que Geyser no pudo registrar");
+            report.add("# MDVGeyserCompat 1.0.4 - definiciones que Geyser no pudo registrar");
             report.add("# Si queda vacio debajo de esta linea, no hubo omisiones.");
             report.add("");
             report.addAll(failureReport);
             Files.write(dataFolder().resolve("item-model-failures-report.txt"), report, StandardCharsets.UTF_8);
+
+            List<String> reg = new ArrayList<>();
+            reg.add("# MDVGeyserCompat 1.0.4 - resultado de registro por item_model");
+            reg.add("# Modos: NATIVE_BLOCK, VANILLA_ATLAS, GENERATED_TEXTURE");
+            reg.add("");
+            reg.addAll(registrationReport);
+            Files.write(dataFolder().resolve("item-model-registration-report.txt"), reg, StandardCharsets.UTF_8);
         } catch (IOException ignored) {
         }
 

@@ -1,18 +1,16 @@
-# MDVGeyserCompat 1.0.3
+# MDVGeyserCompat 1.0.4
 
 Extension server-side de Geyser para MDVCRAFT (Purpur/Spigot + Geyser 2.11.x).
 
 ## 1. `minecraft:item_model` vanilla -> Bedrock
 
-La 1.0.3 cambia la estrategia de registro para MDVCRAFT.
-
-Todos los items con `item_model` se leen directamente desde:
+La 1.0.4 mantiene el escaneo exacto de MMOItems desde:
 
 ```text
 plugins/MMOItems/item/
 ```
 
-y se registran solamente los pares reales `material -> model` de los YAML.
+y registra solamente los pares reales `material -> model` de tus YAML.
 
 Ejemplos:
 
@@ -30,35 +28,31 @@ OTROITEM:
     model: BAMBOO
 ```
 
-Esto evita registrar `STICK x ~1400 modelos`, que en 1.0.2 producia miles de definiciones y hacia que Geyser omitiera muchas.
+### Cambio importante de 1.0.4
 
-La config por defecto usa:
+La 1.0.3 intentaba resolver muchos bloques mediante rutas de textura y ademas agregaba un predicate `count(1)` a todas las definiciones.
 
-```yaml
-item-models:
-  mmoitems-only-mode: true
-  mmoitems-folder: plugins/MMOItems/item
-```
+En 1.0.4:
 
-Incluso si conservas una config 1.0.2 con `base-items: STICK/APPLE`, el modo MMOItems de 1.0.3 los ignora para evitar volver al registro masivo.
+- cada combinacion `base item + item_model` se registra SIN predicate adicional;
+- los modelos que apuntan a bloques vanilla usan el icono/render nativo del bloque Bedrock mediante `block_placer + useBlockIcon`;
+- `kelp` y `chain` reutilizan directamente los shortnames del atlas vanilla de Bedrock;
+- `scute` / `turtle_scute` usa el shortname historico `turtle_shell_piece` de Bedrock;
+- el AutoPack cambia de UUID para obligar a Bedrock a descargar esta revision y no reutilizar una copia antigua en cache.
 
-### Casos vanilla corregidos
+Esto apunta directamente a los casos de MDVCRAFT que seguian fallando:
 
-Se añadieron equivalencias explicitas Bedrock para:
+- STICK -> KELP
+- STONE_PICKAXE -> BAMBOO
+- STICK -> MOSS_BLOCK
+- STICK -> LIGHTNING_ROD
+- STICK -> CHAIN
+- STICK -> COAL_BLOCK / OBSIDIAN
+- STICK -> OCHRE/PEARLESCENT/VERDANT_FROGLIGHT
+- STICK -> REDSTONE_BLOCK
+- STICK -> SCUTE
 
-- kelp
-- bamboo
-- moss_block
-- lightning_rod
-- chain
-- coal_block
-- obsidian
-- redstone_block
-- glowstone
-- ochre/pearlescent/verdant_froglight
-- scute / turtle_scute
-
-Tambien se permite registrar un `item_model` aunque no corresponda exactamente a un `Material` Bukkit actual. Esto cubre nombres de modelo legacy como `minecraft:scute`.
+Los bloques ya no dependen de adivinar una PNG del atlas de Bedrock para su icono: Bedrock renderiza su bloque vanilla.
 
 ### Reportes
 
@@ -68,37 +62,29 @@ Se generan:
 item-model-pairs-report.txt
 item-texture-report.txt
 item-model-failures-report.txt
+item-model-registration-report.txt
 ```
 
-`item-model-failures-report.txt` muestra exactamente cualquier definicion que Geyser haya rechazado.
+`item-model-registration-report.txt` indica para cada par uno de estos modos:
 
-Si un item se genera por codigo y no existe en `plugins/MMOItems/item`, puede agregarse manualmente:
-
-```yaml
-item-models:
-  manual-pairs:
-    - minecraft:paper=>minecraft:tripwire_hook
+```text
+NATIVE_BLOCK
+VANILLA_ATLAS
+GENERATED_TEXTURE
 ```
+
+y tambien indica `FAIL` si Geyser rechazo el registro.
 
 ## 2. Custom skulls Base64 -> Bedrock
 
-Se mantiene el sistema de 1.0.2: busca perfiles Base64, los registra en Geyser y usa `skulls-cache.txt` para que los reinicios sean rapidos.
-
-Para reconstruir la cache:
-
-```yaml
-skulls:
-  rebuild-cache: true
-```
-
-reinicia una vez y vuelve a `false`.
+No se cambia el sistema de cabezas de 1.0.3. Sigue usando `skulls-cache.txt` y registra los perfiles Base64 en Geyser.
 
 ## Instalacion
 
-Este JAR es una extension de Geyser, no un plugin Bukkit normal:
+Es una extension de Geyser, no un plugin Bukkit normal:
 
 ```text
-plugins/Geyser-Spigot/extensions/MDVGeyserCompat-1.0.3.jar
+plugins/Geyser-Spigot/extensions/MDVGeyserCompat-1.0.4.jar
 ```
 
 Borra la version anterior y reinicia el servidor completo.
@@ -106,7 +92,8 @@ Borra la version anterior y reinicia el servidor completo.
 Geyser debe tener:
 
 ```yaml
-enable-custom-content: true
+gameplay:
+  enable-custom-content: true
 ```
 
 ## Compilar
@@ -120,7 +107,7 @@ mvn clean package
 Salida:
 
 ```text
-target/MDVGeyserCompat-1.0.3.jar
+target/MDVGeyserCompat-1.0.4.jar
 ```
 
 El repositorio incluye `.github/workflows/build.yml` para compilarlo con GitHub Actions.
