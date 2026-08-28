@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Enumeration;
@@ -22,12 +23,56 @@ final class SkullScanner {
     // Los perfiles texture de Mojang suelen rondar 180-500 caracteres.
     // Se usa un mínimo alto para evitar confundir UUIDs/tokens con perfiles.
     private static final Pattern BASE64 = Pattern.compile("(?<![A-Za-z0-9+/])([A-Za-z0-9+/]{100,}={0,2})(?![A-Za-z0-9+/=])");
+    private static final String CACHE_FILE = "skulls-cache.txt";
+    private static final String LEGACY_CACHE_FILE = "skulls-found.txt";
 
-    record Result(Set<String> profiles, int filesScanned, int jarsScanned, long millis) {}
+    record Result(Set<String> profiles, int filesScanned, int jarsScanned, long millis, boolean fromCache) {}
 
     private SkullScanner() {}
 
-    static Result scan(Path serverRoot, CompatConfig cfg) {
+    static Result loadOrScan(Path serverRoot, Path dataFolder, CompatConfig cfg) {
+        long start = System.currentTimeMillis();
+        Set<String> manual = new HashSet<>();
+        for (String profile : cfg.manualProfiles) {
+            if (isTextureProfile(profile)) manual.add(profile);
+        }
+
+        if (cfg.skullCacheEnabled && !cfg.rebuildSkullCache) {
+            Path cache = dataFolder.resolve(CACHE_FILE);
+            Set<String> cached = readCache(cache);
+
+            // Migración automática desde 1.0.0: reaprovecha skulls-found.txt y evita
+            // volver a escanear centenares de JARs en el primer arranque con 1.0.1.
+            if (cached.isEmpty() && Files.notExists(cache)) {
+                Path legacy = dataFolder.resolve(LEGACY_CACHE_FILE);
+                cached = readCache(legacy);
+                if (!cached.isEmpty()) {
+                    cached.addAll(manual);
+                    writeCache(cache, cached);
+                }
+            }
+
+            if (!cached.isEmpty()) {
+                cached.addAll(manual);
+                return new Result(cached, 0, 0, System.currentTimeMillis() - start, true);
+            }
+        }
+
+        Result scanned = scan(serverRoot, cfg);
+        Set<String> profiles = new HashSet<>(scanned.profiles());
+        profiles.addAll(manual);
+
+        if (cfg.skullCacheEnabled) {
+            writeCache(dataFolder.resolve(CACHE_FILE), profiles);
+        }
+        // Se mantiene por compatibilidad y para que el administrador pueda inspeccionarlo.
+        writeCache(dataFolder.resolve(LEGACY_CACHE_FILE), profiles);
+
+        return new Result(profiles, scanned.filesScanned(), scanned.jarsScanned(),
+                System.currentTimeMillis() - start, false);
+    }
+
+    private static Result scan(Path serverRoot, CompatConfig cfg) {
         long start = System.currentTimeMillis();
         Set<String> profiles = new HashSet<>();
         profiles.addAll(cfg.manualProfiles.stream().filter(SkullScanner::isTextureProfile).toList());
@@ -65,7 +110,34 @@ final class SkullScanner {
             }
         }
 
-        return new Result(profiles, files.get(), jars.get(), System.currentTimeMillis() - start);
+        return new Result(profiles, files.get(), jars.get(), System.currentTimeMillis() - start, false);
+    }
+
+    private static Set<String> readCache(Path path) {
+        Set<String> result = new HashSet<>();
+        if (Files.notExists(path)) return result;
+        try {
+            for (String raw : Files.readAllLines(path, StandardCharsets.UTF_8)) {
+                String value = raw.trim();
+                if (isTextureProfile(value)) result.add(value);
+            }
+        } catch (IOException ignored) {
+        }
+        return result;
+    }
+
+    private static void writeCache(Path path, Set<String> profiles) {
+        try {
+            Files.createDirectories(path.getParent());
+            Path temp = path.resolveSibling(path.getFileName() + ".tmp");
+            Files.write(temp, profiles.stream().sorted().toList(), StandardCharsets.UTF_8);
+            try {
+                Files.move(temp, path, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            } catch (IOException atomicUnsupported) {
+                Files.move(temp, path, StandardCopyOption.REPLACE_EXISTING);
+            }
+        } catch (IOException ignored) {
+        }
     }
 
     private static void scanJar(Path jarPath, Set<String> profiles, long maxEntryBytes) {

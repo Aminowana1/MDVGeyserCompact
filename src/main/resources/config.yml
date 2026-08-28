@@ -1,5 +1,5 @@
 # ==========================================================
-# MDVGeyserCompat 1.0.0
+# MDVGeyserCompat 1.0.1
 # Geyser Extension para MDVCRAFT
 # ==========================================================
 #
@@ -8,7 +8,7 @@
 # - El .jar va en plugins/Geyser-Spigot/extensions/
 # - Requiere Geyser 2.11.x y enable-custom-content: true.
 # - Los registros de items/skulls se crean al iniciar Geyser.
-#   Después de cambios, reinicia el servidor completo.
+#   Despues de cambios, reinicia el servidor completo.
 #
 
 item-models:
@@ -17,24 +17,23 @@ item-models:
   # Registra TODOS los item_model vanilla como apariencia para estos
   # materiales base. STICK es el caso principal de MDVCRAFT.
   #
-  # Ejemplo soportado:
+  # Ejemplos:
   # /give @s stick[minecraft:item_model="minecraft:diamond_pickaxe"]
   # /give @s stick[minecraft:item_model="minecraft:chorus_fruit"]
   #
   # Puedes agregar otras bases si las usas, por ejemplo minecraft:apple.
-  # NO pongas todos los materiales aquí: cada base multiplica la cantidad
+  # NO pongas todos los materiales aqui: cada base multiplica la cantidad
   # de definiciones registradas en Bedrock.
   base-items:
     - minecraft:stick
     - minecraft:apple
 
-  # Incluye materiales que también son bloques.
+  # Incluye materiales que tambien son bloques.
   include-block-items: true
 
-  # true = para item_model que apunta a un bloque, intenta usar el render 3D
-  # nativo de Bedrock. Esto usa el componente block_placer de Geyser y puede
-  # provocar una predicción visual momentánea de colocación al hacer click.
-  # false = usa icono 2D/fallback.
+  # Conserva la representacion 3D previa para targets que son bloques.
+  # Desde 1.0.1 SIEMPRE se genera ademas un icono 2D para inventarios/menus,
+  # por lo que ya no deberian aparecer sin textura en una GUI.
   use-3d-block-icons: true
 
   # Overrides manuales para excepciones Java -> textura vanilla Bedrock.
@@ -42,18 +41,28 @@ item-models:
   # No pongas .png al final.
   texture-overrides: []
   # - minecraft:mi_item=textures/items/ruta_real
+  # - minecraft:mi_bloque=textures/blocks/ruta_real
 
   # Overrides cuando el ID de bloque Java y Bedrock no coincidan.
+  # Solo afecta al componente 3D de bloques.
   # Formato: minecraft:java_block=minecraft:bedrock_block
   block-id-overrides: []
 
 skulls:
   enabled: true
 
-  # Busca automáticamente Base64 de texturas de cabezas en configs/plugins.
+  # Cachea los perfiles encontrados. Con esto NO vuelve a revisar cientos
+  # de jars/configs en cada reinicio.
+  cache-enabled: true
+
+  # Ponlo true SOLO para un reinicio cuando agregues muchas cabezas nuevas.
+  # Luego vuelvelo a false.
+  rebuild-cache: false
+
+  # Busca automaticamente Base64 de texturas de cabezas en configs/plugins.
   scan-server-files: true
 
-  # Rutas relativas a la raíz del servidor.
+  # Rutas relativas a la raiz del servidor.
   scan-roots:
     - plugins
 
@@ -66,11 +75,11 @@ skulls:
     - conf
     - properties
 
-  # También busca strings Base64 incrustados dentro de .jar/.class.
-  # Es útil para cabezas hardcodeadas en plugins propios.
+  # Tambien busca strings Base64 incrustados dentro de .jar/.class.
+  # Solo se hace al construir/reconstruir la cache.
   scan-jars: true
 
-  # Límites de seguridad para no leer archivos gigantes accidentalmente.
+  # Limites de seguridad para no leer archivos gigantes accidentalmente.
   max-file-size-mb: 16
   max-jar-entry-mb: 4
 

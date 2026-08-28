@@ -1,23 +1,13 @@
-# MDVGeyserCompat 1.0.0
+# MDVGeyserCompat 1.0.1
 
-Extension server-side de Geyser para MDVCRAFT. No requiere Fabric/Forge ni mods del cliente.
+Extension server-side de Geyser para MDVCRAFT (Purpur/Spigot + Geyser 2.11.x).
 
-## Que hace
+## Funciones
 
-### 1. `minecraft:item_model` vanilla en items base
+### 1. `minecraft:item_model` vanilla -> Bedrock
+Registra, para cada material base configurado (por defecto `minecraft:stick` y `minecraft:apple`), apariencias para todos los materiales vanilla detectados en la version Bukkit del servidor.
 
-Registra todos los materiales vanilla que Bukkit/Purpur 1.21.6 expone como items para cada `base-items` configurado.
-
-Por defecto:
-
-```yaml
-item-models:
-  base-items:
-    - minecraft:stick
-    - minecraft:apple
-```
-
-Ejemplos Java que la extension intenta representar tambien en Bedrock:
+Ejemplos Java:
 
 ```mcfunction
 /give @s minecraft:stick[minecraft:item_model="minecraft:diamond_pickaxe"]
@@ -25,62 +15,56 @@ Ejemplos Java que la extension intenta representar tambien en Bedrock:
 /give @s minecraft:apple[minecraft:item_model="minecraft:diamond_pickaxe"]
 ```
 
-Un STICK normal sigue siendo STICK. La definicion solo coincide cuando el stack tiene el `item_model` correspondiente.
+La extension crea automaticamente `MDVGeyserCompat-AutoPack.mcpack` y lo registra en Geyser.
 
-La extension genera automaticamente `MDVGeyserCompat-AutoPack.mcpack`. No incluye PNGs de Minecraft: solamente crea aliases hacia recursos vanilla que el cliente Bedrock ya posee.
+### Cambios 1.0.1
+- Todos los mappings, incluidos los que apuntan a bloques, reciben ahora un icono de inventario. Esto corrige los modelos que se veian bien en mano/dropeados pero fallaban en menus/GUI.
+- Se ampliaron las traducciones Java -> rutas vanilla Bedrock (salmon, libros, pociones, tintes, puertas, carteles, botes, discos, etc.).
+- Se genera `item-texture-report.txt` para diagnosticar rapidamente cualquier excepcion restante.
+- Se filtran materiales `LEGACY_*` antes de consultar Bukkit, evitando inicializar soporte legacy solo por el escaneo.
 
-Los bloques pueden usar render 3D mediante `use-3d-block-icons: true`. Geyser implementa esto con `block_placer`; Bedrock puede hacer una prediccion visual de colocacion al usar el item. Si molesta para una skill, ponlo en `false`.
+### 2. Custom skulls Base64 -> Bedrock
+Busca perfiles Base64 de `textures.minecraft.net` en configuraciones y opcionalmente dentro de JARs, y los registra con la API de custom skulls de Geyser. Funcionan en inventarios/menus, equipados por jugadores y mobs y como items.
 
-Para nombres de textura Bedrock excepcionales puede añadirse:
+Desde 1.0.1 los perfiles se cachean en `skulls-cache.txt`. Si ya venias de 1.0.0, reutiliza automaticamente `skulls-found.txt` para evitar el escaneo completo de nuevo.
+
+Para detectar cabezas nuevas, pon temporalmente:
 
 ```yaml
-item-models:
-  texture-overrides:
-    - minecraft:ejemplo=textures/items/ruta_bedrock
+skulls:
+  rebuild-cache: true
 ```
 
-### 2. Custom PLAYER_HEAD Base64
-
-Busca perfiles Base64 de `textures.minecraft.net` en:
-
-- YAML/JSON/TXT/CONF/properties dentro de `plugins/`
-- clases y configs empaquetadas dentro de JARs (si `scan-jars: true`)
-- `manual-profiles` del config
-
-Luego los registra con `GeyserDefineCustomSkullsEvent` como `PROFILE`.
-
-Esto utiliza el sistema oficial de custom skulls de Geyser para que puedan verse en Bedrock como:
-
-- items en inventarios y menus
-- cabezas equipadas por jugadores
-- cabezas equipadas por mobs/entidades
-- cabezas colocadas, cuando Geyser pueda asociar el perfil registrado
-
-El listado detectado se guarda en `skulls-found.txt` dentro de la carpeta de la extension.
+reinicia una vez y luego vuelve a `false`.
 
 ## Instalacion
 
-1. Compila con Java 21: `mvn clean package`.
-2. Copia `target/MDVGeyserCompat-1.0.0.jar` a:
+**No es un plugin Bukkit normal.** Copia el JAR a:
 
-   `plugins/Geyser-Spigot/extensions/MDVGeyserCompat-1.0.0.jar`
-
-3. En `plugins/Geyser-Spigot/config.yml` deja:
-
-```yaml
-gameplay:
-  enable-custom-content: true
+```text
+plugins/Geyser-Spigot/extensions/MDVGeyserCompat-1.0.1.jar
 ```
 
-4. Reinicia COMPLETAMENTE el servidor.
-5. La config de esta extension quedara bajo la carpeta de datos que Geyser cree para `MDVGeyserCompat`.
+Asegurate de tener en Geyser:
 
-## Compilar con GitHub Actions
+```yaml
+enable-custom-content: true
+```
 
-El proyecto incluye `.github/workflows/build.yml`. Sube el proyecto a GitHub y ejecuta **Build MDVGeyserCompat** desde Actions; el JAR aparecera en el artifact `MDVGeyserCompat`.
+Reinicia completamente el servidor. No uses `/reload`.
 
-## Notas
+## Compilar con Maven
 
-- Los custom items/skulls se definen durante el arranque de Geyser, por eso no se pueden descubrir y añadir de forma fiable despues de que ya entro un cliente Bedrock.
-- Anadir muchas `base-items` multiplica las definiciones. Para MDVCRAFT conviene dejar STICK y solo agregar otras bases que realmente uses.
-- `minecraft:item_model` y el antiguo `minecraft:custom_model_data` numerico no son exactamente lo mismo. Esta version esta enfocada en el componente moderno `minecraft:item_model` usado en 1.21.6.
+Requiere Java 21 y Maven:
+
+```bash
+mvn clean package
+```
+
+Salida:
+
+```text
+target/MDVGeyserCompat-1.0.1.jar
+```
+
+El workflow `.github/workflows/build.yml` tambien permite compilarlo desde GitHub Actions.

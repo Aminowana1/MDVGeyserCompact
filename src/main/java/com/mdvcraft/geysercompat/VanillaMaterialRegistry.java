@@ -20,9 +20,11 @@ final class VanillaMaterialRegistry {
 
         List<Entry> result = new ArrayList<>();
         for (Object material : values) {
-            if (!(Boolean) isItem.invoke(material)) continue;
+            // Filtra LEGACY antes de invocar isItem/isBlock: CraftBukkit inicializa
+            // el soporte legacy si se consulta uno de esos enum values.
             String enumName = ((Enum<?>) material).name();
             if (enumName.startsWith("LEGACY_") || enumName.equals("AIR") || enumName.endsWith("_AIR")) continue;
+            if (!(Boolean) isItem.invoke(material)) continue;
 
             Object key = getKey.invoke(material);
             String id = key.toString().toLowerCase(Locale.ROOT);

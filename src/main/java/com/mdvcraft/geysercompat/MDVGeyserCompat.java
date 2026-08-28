@@ -63,15 +63,16 @@ public final class MDVGeyserCompat implements Extension {
         }
 
         if (config.skullsEnabled) {
-            SkullScanner.Result result = SkullScanner.scan(serverRoot, config);
+            SkullScanner.Result result = SkullScanner.loadOrScan(serverRoot, dataFolder(), config);
             skullProfiles = Set.copyOf(result.profiles());
-            try {
-                Files.write(dataFolder().resolve("skulls-found.txt"), skullProfiles.stream().sorted().toList());
-            } catch (IOException ignored) {
+            if (result.fromCache()) {
+                logger().info("Skulls Base64: " + skullProfiles.size()
+                        + " perfiles cargados desde cache (" + result.millis() + " ms).");
+            } else {
+                logger().info("Skulls Base64: " + skullProfiles.size() + " perfiles detectados ("
+                        + result.filesScanned() + " archivos, " + result.jarsScanned() + " jars, "
+                        + result.millis() + " ms). Cache guardada.");
             }
-            logger().info("Skulls Base64: " + skullProfiles.size() + " perfiles detectados ("
-                    + result.filesScanned() + " archivos, " + result.jarsScanned() + " jars, "
-                    + result.millis() + " ms).");
         }
 
         if (config.debug) {
@@ -113,18 +114,22 @@ public final class MDVGeyserCompat implements Extension {
                     // count(1) es verdadero para cualquier stack real y no exige modificar el item Java.
                     definition.predicate(ItemRangeDispatchPredicate.count(1));
 
+                    // TODOS los custom items reciben un icono. En 1.0.0 los modelos
+                    // que apuntaban a bloques no lo recibian si use-3d-block-icons=true;
+                    // por eso podian verse en mano/dropeados pero fallaban en inventarios/menus.
                     CustomItemBedrockOptions.Builder bedrock = CustomItemBedrockOptions.builder()
                             .allowOffhand(true)
-                            .displayHandheld(VanillaTextureResolver.displayHandheld(target.id()));
+                            .displayHandheld(VanillaTextureResolver.displayHandheld(target.id()))
+                            .icon(VanillaTextureResolver.iconKey(base, target.id()));
 
+                    // Se conserva el render/comportamiento 3D previo para no romper lo que ya
+                    // funcionaba fuera de GUIs, pero ahora tambien existe siempre el icono 2D.
                     if (target.block() && config.use3dBlockIcons) {
                         String bedrockBlock = config.blockIdOverrides.getOrDefault(target.id(), target.id());
                         definition.component(
                                 GeyserItemDataComponents.BLOCK_PLACER,
                                 GeyserBlockPlacer.of(Identifier.of(bedrockBlock), true)
                         );
-                    } else {
-                        bedrock.icon(VanillaTextureResolver.iconKey(base, target.id()));
                     }
 
                     definition.bedrockOptions(bedrock);

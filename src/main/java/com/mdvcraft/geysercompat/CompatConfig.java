@@ -31,6 +31,8 @@ final class CompatConfig {
     boolean scanJars = true;
     int maxFileSizeMb = 16;
     int maxJarEntryMb = 4;
+    boolean skullCacheEnabled = true;
+    boolean rebuildSkullCache = false;
     final List<String> manualProfiles = new ArrayList<>();
 
     boolean debug = false;
@@ -95,6 +97,8 @@ final class CompatConfig {
                         case "scan-jars" -> cfg.scanJars = bool(value, cfg.scanJars);
                         case "max-file-size-mb" -> cfg.maxFileSizeMb = integer(value, cfg.maxFileSizeMb);
                         case "max-jar-entry-mb" -> cfg.maxJarEntryMb = integer(value, cfg.maxJarEntryMb);
+                        case "cache-enabled" -> cfg.skullCacheEnabled = bool(value, cfg.skullCacheEnabled);
+                        case "rebuild-cache" -> cfg.rebuildSkullCache = bool(value, cfg.rebuildSkullCache);
                         case "scan-roots" -> {
                             if (!rootsSeen) {
                                 cfg.scanRoots.clear();

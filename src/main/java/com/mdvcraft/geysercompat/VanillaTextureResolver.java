@@ -7,10 +7,14 @@ import java.util.Set;
 
 /**
  * Convierte IDs Java a rutas de texturas vanilla de Bedrock.
- * Los bloques normalmente usan el render 3D y no pasan por este resolver.
+ *
+ * Bedrock conserva bastantes nombres historicos (wood_*, gold_*, record_*, etc.)
+ * y por eso no alcanza con hacer textures/items/<java_id>. Esta tabla cubre las
+ * diferencias comunes de 1.21.x y deja overrides manuales para excepciones.
  */
 final class VanillaTextureResolver {
     private static final Map<String, String> EXACT = new HashMap<>();
+    private static final Map<String, String> BLOCK_EXACT = new HashMap<>();
     private static final Set<String> HANDHELD_EXACT = Set.of(
             "bow", "crossbow", "trident", "mace", "fishing_rod", "carrot_on_a_stick",
             "warped_fungus_on_a_stick", "stick", "blaze_rod", "breeze_rod", "brush"
@@ -30,7 +34,7 @@ final class VanillaTextureResolver {
         alias("cooked_rabbit", "textures/items/rabbit_cooked");
         alias("cod", "textures/items/fish_raw");
         alias("cooked_cod", "textures/items/fish_cooked");
-        alias("salmon", "textures/items/fish_salmon");
+        alias("salmon", "textures/items/fish_salmon_raw");
         alias("cooked_salmon", "textures/items/fish_salmon_cooked");
         alias("tropical_fish", "textures/items/fish_clownfish_raw");
         alias("pufferfish", "textures/items/fish_pufferfish_raw");
@@ -38,10 +42,52 @@ final class VanillaTextureResolver {
         alias("melon_slice", "textures/items/melon");
         alias("glistering_melon_slice", "textures/items/melon_speckled");
         alias("popped_chorus_fruit", "textures/items/chorus_fruit_popped");
+        alias("baked_potato", "textures/items/potato_baked");
+        alias("poisonous_potato", "textures/items/potato_poisonous");
         alias("nether_brick", "textures/items/netherbrick");
         alias("dragon_breath", "textures/items/dragons_breath");
         alias("nautilus_shell", "textures/items/nautilus");
         alias("heart_of_the_sea", "textures/items/heartofthesea_closed");
+        alias("fermented_spider_eye", "textures/items/spider_eye_fermented");
+        alias("fire_charge", "textures/items/fireball");
+
+        // Libros, botellas y pociones.
+        alias("book", "textures/items/book_normal");
+        alias("enchanted_book", "textures/items/book_enchanted");
+        alias("writable_book", "textures/items/book_writable");
+        alias("written_book", "textures/items/book_written");
+        alias("glass_bottle", "textures/items/potion_bottle_empty");
+        alias("potion", "textures/items/potion_bottle_drinkable");
+        alias("splash_potion", "textures/items/potion_bottle_splash");
+        alias("lingering_potion", "textures/items/potion_bottle_lingering");
+
+        // Semillas / redstone / tintes: Bedrock conserva nombres legacy.
+        alias("sugar_cane", "textures/items/reeds");
+        alias("redstone", "textures/items/redstone_dust");
+        alias("wheat_seeds", "textures/items/seeds_wheat");
+        alias("melon_seeds", "textures/items/seeds_melon");
+        alias("pumpkin_seeds", "textures/items/seeds_pumpkin");
+        alias("beetroot_seeds", "textures/items/seeds_beetroot");
+        alias("ink_sac", "textures/items/dye_powder_black_new");
+        alias("lapis_lazuli", "textures/items/dye_powder_blue_new");
+        alias("cocoa_beans", "textures/items/dye_powder_brown_new");
+        alias("bone_meal", "textures/items/dye_powder_white_new");
+        dye("black", "black_new");
+        dye("blue", "blue_new");
+        dye("brown", "brown_new");
+        dye("white", "white_new");
+        dye("red", "red");
+        dye("green", "green");
+        dye("purple", "purple");
+        dye("cyan", "cyan");
+        dye("light_gray", "silver");
+        dye("gray", "gray");
+        dye("pink", "pink");
+        dye("lime", "lime");
+        dye("yellow", "yellow");
+        dye("light_blue", "light_blue");
+        dye("magenta", "magenta");
+        dye("orange", "orange");
 
         // UI / estados de items.
         alias("bow", "textures/items/bow_standby");
@@ -58,6 +104,62 @@ final class VanillaTextureResolver {
         alias("totem_of_undying", "textures/items/totem");
         alias("enchanted_golden_apple", "textures/items/apple_golden");
         alias("golden_apple", "textures/items/apple_golden");
+        alias("shield", "textures/entity/shield");
+
+        // Puertas vanilla con nombres historicos en Bedrock.
+        alias("oak_door", "textures/items/door_wood");
+        alias("iron_door", "textures/items/door_iron");
+        alias("spruce_door", "textures/items/door_spruce");
+        alias("birch_door", "textures/items/door_birch");
+        alias("jungle_door", "textures/items/door_jungle");
+        alias("acacia_door", "textures/items/door_acacia");
+        alias("dark_oak_door", "textures/items/door_dark_oak");
+        // Las maderas nuevas coinciden con el id Java.
+        alias("mangrove_door", "textures/items/mangrove_door");
+        alias("cherry_door", "textures/items/cherry_door");
+        alias("bamboo_door", "textures/items/bamboo_door");
+        alias("crimson_door", "textures/items/crimson_door");
+        alias("warped_door", "textures/items/warped_door");
+        alias("pale_oak_door", "textures/items/pale_oak_door");
+
+        // Carteles.
+        alias("oak_sign", "textures/items/sign");
+        alias("spruce_sign", "textures/items/sign_spruce");
+        alias("birch_sign", "textures/items/sign_birch");
+        alias("jungle_sign", "textures/items/sign_jungle");
+        alias("acacia_sign", "textures/items/sign_acacia");
+        alias("dark_oak_sign", "textures/items/sign_darkoak");
+        alias("crimson_sign", "textures/items/sign_crimson");
+        alias("warped_sign", "textures/items/sign_warped");
+        alias("mangrove_sign", "textures/items/mangrove_sign");
+        alias("bamboo_sign", "textures/items/bamboo_sign");
+        alias("cherry_sign", "textures/items/cherry_sign");
+        alias("pale_oak_sign", "textures/items/pale_oak_sign");
+        hangingSign("oak");
+        hangingSign("spruce");
+        hangingSign("birch");
+        hangingSign("jungle");
+        hangingSign("acacia");
+        hangingSign("dark_oak");
+        hangingSign("crimson");
+        hangingSign("warped");
+        hangingSign("mangrove");
+        hangingSign("bamboo");
+        hangingSign("cherry");
+        hangingSign("pale_oak");
+
+        // Botes y cofres-bote.
+        boat("oak", "oak");
+        boat("spruce", "spruce");
+        boat("birch", "birch");
+        boat("jungle", "jungle");
+        boat("acacia", "acacia");
+        boat("dark_oak", "darkoak");
+        boat("mangrove", "mangrove");
+        boat("cherry", "cherry");
+        boat("pale_oak", "pale_oak");
+        alias("bamboo_raft", "textures/items/bamboo_raft");
+        alias("bamboo_chest_raft", "textures/items/bamboo_chest_raft");
 
         // Minecarts.
         alias("minecart", "textures/items/minecart_normal");
@@ -67,7 +169,10 @@ final class VanillaTextureResolver {
         alias("hopper_minecart", "textures/items/minecart_hopper");
         alias("command_block_minecart", "textures/items/minecart_command_block");
 
-        // Music discs (nombres históricos de Bedrock).
+        // Armadura de caballo.
+        alias("golden_horse_armor", "textures/items/gold_horse_armor");
+
+        // Music discs (nombres historicos y nuevos de Bedrock).
         alias("music_disc_13", "textures/items/record_13");
         alias("music_disc_cat", "textures/items/record_cat");
         alias("music_disc_blocks", "textures/items/record_blocks");
@@ -83,15 +188,80 @@ final class VanillaTextureResolver {
         alias("music_disc_pigstep", "textures/items/record_pigstep");
         alias("music_disc_otherside", "textures/items/record_otherside");
         alias("music_disc_5", "textures/items/record_5");
-        alias("music_disc_relic", "textures/items/record_relic");
-        alias("music_disc_creator", "textures/items/record_creator");
-        alias("music_disc_creator_music_box", "textures/items/record_creator_music_box");
-        alias("music_disc_precipice", "textures/items/record_precipice");
-        alias("music_disc_tears", "textures/items/record_tears");
-        alias("music_disc_lava_chicken", "textures/items/record_lava_chicken");
+        alias("music_disc_relic", "textures/items/music_disc_relic");
+        alias("music_disc_creator", "textures/items/music_disc_creator");
+        alias("music_disc_creator_music_box", "textures/items/music_disc_creator_music_box");
+        alias("music_disc_precipice", "textures/items/music_disc_precipice");
+        alias("music_disc_tears", "textures/items/music_disc_tears");
+        alias("music_disc_lava_chicken", "textures/items/music_disc_lava_chicken");
+
+        // Bloques clasicos cuyo nombre de textura Bedrock no coincide con Java.
+        block("grass_block", "textures/blocks/grass_side_carried");
+        block("oak_planks", "textures/blocks/planks_oak");
+        block("spruce_planks", "textures/blocks/planks_spruce");
+        block("birch_planks", "textures/blocks/planks_birch");
+        block("jungle_planks", "textures/blocks/planks_jungle");
+        block("acacia_planks", "textures/blocks/planks_acacia");
+        block("dark_oak_planks", "textures/blocks/planks_big_oak");
+        block("oak_log", "textures/blocks/log_oak");
+        block("spruce_log", "textures/blocks/log_spruce");
+        block("birch_log", "textures/blocks/log_birch");
+        block("jungle_log", "textures/blocks/log_jungle");
+        block("acacia_log", "textures/blocks/log_acacia");
+        block("dark_oak_log", "textures/blocks/log_big_oak");
+        block("oak_wood", "textures/blocks/log_oak");
+        block("spruce_wood", "textures/blocks/log_spruce");
+        block("birch_wood", "textures/blocks/log_birch");
+        block("jungle_wood", "textures/blocks/log_jungle");
+        block("acacia_wood", "textures/blocks/log_acacia");
+        block("dark_oak_wood", "textures/blocks/log_big_oak");
+        block("oak_leaves", "textures/blocks/leaves_oak");
+        block("spruce_leaves", "textures/blocks/leaves_spruce");
+        block("birch_leaves", "textures/blocks/leaves_birch");
+        block("jungle_leaves", "textures/blocks/leaves_jungle");
+        block("acacia_leaves", "textures/blocks/leaves_acacia");
+        block("dark_oak_leaves", "textures/blocks/leaves_big_oak");
+        block("bricks", "textures/blocks/brick");
+        block("stone_bricks", "textures/blocks/stonebrick");
+        block("mossy_stone_bricks", "textures/blocks/stonebrick_mossy");
+        block("cracked_stone_bricks", "textures/blocks/stonebrick_cracked");
+        block("chiseled_stone_bricks", "textures/blocks/stonebrick_carved");
+        block("nether_bricks", "textures/blocks/nether_brick");
+        block("red_nether_bricks", "textures/blocks/red_nether_brick");
+        block("quartz_block", "textures/blocks/quartz_block_side");
+        block("quartz_pillar", "textures/blocks/quartz_block_lines");
+        block("chiseled_quartz_block", "textures/blocks/quartz_block_chiseled");
+        block("smooth_quartz", "textures/blocks/quartz_block_bottom");
+        block("bookshelf", "textures/blocks/bookshelf");
+        block("crafting_table", "textures/blocks/crafting_table_front");
+        block("furnace", "textures/blocks/furnace_front_off");
+        block("blast_furnace", "textures/blocks/blast_furnace_front_off");
+        block("smoker", "textures/blocks/smoker_front_off");
+        block("chest", "textures/blocks/planks_oak");
+        block("ender_chest", "textures/blocks/obsidian");
+        block("tnt", "textures/blocks/tnt_side");
+        block("hay_block", "textures/blocks/hay_block_side");
+        block("dried_kelp_block", "textures/blocks/dried_kelp_side_a");
+        block("melon", "textures/blocks/melon_side");
+        block("pumpkin", "textures/blocks/pumpkin_side");
+        block("carved_pumpkin", "textures/blocks/pumpkin_face_off");
+        block("jack_o_lantern", "textures/blocks/pumpkin_face_on");
     }
 
     private VanillaTextureResolver() {}
+
+    static String resolveIconTexture(String javaId, boolean block, Map<String, String> overrides) {
+        String normalized = CompatConfig.normalizeId(javaId);
+        String manual = overrides.get(normalized);
+        if (manual != null && !manual.isBlank()) return manual;
+
+        String path = normalized.substring(normalized.indexOf(':') + 1);
+        // Muchos bloques (puertas, carteles, campfires, etc.) tienen una textura de item
+        // dedicada. Si existe en EXACT se prefiere sobre un recorte del terrain atlas.
+        String exactItem = EXACT.get(path);
+        if (exactItem != null) return exactItem;
+        return block ? resolveFlatBlock(normalized, overrides) : resolve(normalized, overrides);
+    }
 
     static String resolve(String javaId, Map<String, String> overrides) {
         String normalized = CompatConfig.normalizeId(javaId);
@@ -134,7 +304,7 @@ final class VanillaTextureResolver {
             };
         }
 
-        // Spawn eggs: Bedrock mantiene las texturas bajo este subdirectorio.
+        // Spawn eggs modernos de Bedrock usan spawn_eggs/spawn_egg_<mob>.
         if (path.endsWith("_spawn_egg")) {
             String mob = path.substring(0, path.length() - "_spawn_egg".length());
             return "textures/items/spawn_eggs/spawn_egg_" + mob;
@@ -149,6 +319,27 @@ final class VanillaTextureResolver {
         String manual = overrides.get(normalized);
         if (manual != null && !manual.isBlank()) return manual;
         String path = normalized.substring(normalized.indexOf(':') + 1);
+
+        String exact = BLOCK_EXACT.get(path);
+        if (exact != null) return exact;
+
+        // Familias legacy del terrain atlas.
+        if (path.endsWith("_wool")) {
+            return "textures/blocks/wool_colored_" + path.substring(0, path.length() - "_wool".length());
+        }
+        if (path.endsWith("_concrete")) {
+            return "textures/blocks/concrete_" + path.substring(0, path.length() - "_concrete".length());
+        }
+        if (path.endsWith("_concrete_powder")) {
+            return "textures/blocks/concrete_powder_" + path.substring(0, path.length() - "_concrete_powder".length());
+        }
+        if (path.endsWith("_terracotta")) {
+            String color = path.substring(0, path.length() - "_terracotta".length());
+            return "textures/blocks/hardened_clay_stained_" + bedrockColor(color);
+        }
+        if (path.equals("terracotta")) return "textures/blocks/hardened_clay";
+
+        // Para bloques modernos Mojang suele conservar el id Java como nombre de textura.
         return "textures/blocks/" + path;
     }
 
@@ -182,6 +373,10 @@ final class VanillaTextureResolver {
                 || path.endsWith("_leggings") || path.endsWith("_boots");
     }
 
+    private static String bedrockColor(String javaColor) {
+        return javaColor.equals("light_gray") ? "silver" : javaColor;
+    }
+
     private static String sanitize(String id) {
         return id.toLowerCase(Locale.ROOT)
                 .replace("minecraft:", "")
@@ -192,5 +387,25 @@ final class VanillaTextureResolver {
 
     private static void alias(String id, String texture) {
         EXACT.put(id, texture);
+    }
+
+    private static void block(String id, String texture) {
+        BLOCK_EXACT.put(id, texture);
+    }
+
+    private static void dye(String javaColor, String bedrockColor) {
+        alias(javaColor + "_dye", "textures/items/dye_powder_" + bedrockColor);
+    }
+
+    private static void boat(String javaWood, String bedrockWood) {
+        String boat = javaWood.equals("mangrove") || javaWood.equals("cherry") || javaWood.equals("pale_oak")
+                ? javaWood + "_boat"
+                : "boat_" + bedrockWood;
+        alias(javaWood + "_boat", "textures/items/" + boat);
+        alias(javaWood + "_chest_boat", "textures/items/" + javaWood + "_chest_boat");
+    }
+
+    private static void hangingSign(String wood) {
+        alias(wood + "_hanging_sign", "textures/items/" + wood + "_hanging_sign");
     }
 }

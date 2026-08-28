@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -26,17 +27,22 @@ final class ResourcePackGenerator {
 
         // TreeMap = salida estable entre reinicios.
         Map<String, String> textureData = new TreeMap<>();
+        List<String> report = new ArrayList<>();
         for (String base : cfg.baseItems) {
             for (VanillaMaterialRegistry.Entry target : targets) {
                 if (!cfg.includeBlockItems && target.block()) continue;
                 if (target.id().equals(base)) continue;
-                if (target.block() && cfg.use3dBlockIcons) continue;
 
+                // 1.0.0 no generaba icono para bloques si use-3d-block-icons=true.
+                // Eso podia verse correcto en mano/mundo por block_placer, pero en GUIs
+                // quedaba sin icono y Bedrock mostraba missing texture. Desde 1.0.1
+                // TODOS los mappings tienen icono de inventario.
                 String icon = VanillaTextureResolver.iconKey(base, target.id());
-                String texture = target.block()
-                        ? VanillaTextureResolver.resolveFlatBlock(target.id(), cfg.textureOverrides)
-                        : VanillaTextureResolver.resolve(target.id(), cfg.textureOverrides);
+                String texture = VanillaTextureResolver.resolveIconTexture(
+                        target.id(), target.block(), cfg.textureOverrides);
                 textureData.put(icon, texture);
+                report.add(base + " -> " + target.id() + " = " + texture
+                        + (target.block() ? " [block]" : ""));
             }
         }
 
@@ -74,11 +80,13 @@ final class ResourcePackGenerator {
             put(zip, "textures/item_texture.json", itemTexture);
         }
 
+        // Muy util para localizar cualquier excepcion de Mojang sin adivinar.
+        Files.write(dataFolder.resolve("item-texture-report.txt"), report, StandardCharsets.UTF_8);
         return pack;
     }
 
     private static String buildItemTextureJson(Map<String, String> entries) {
-        StringBuilder out = new StringBuilder(64 * 1024);
+        StringBuilder out = new StringBuilder(128 * 1024);
         out.append("{\n")
                 .append("  \"resource_pack_name\": \"MDVGeyserCompat\",\n")
                 .append("  \"texture_name\": \"atlas.items\",\n")
