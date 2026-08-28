@@ -1,0 +1,81 @@
+# ==========================================================
+# MDVGeyserCompat 1.0.0
+# Geyser Extension para MDVCRAFT
+# ==========================================================
+#
+# IMPORTANTE:
+# - Es una EXTENSION de Geyser, no un plugin Bukkit normal.
+# - El .jar va en plugins/Geyser-Spigot/extensions/
+# - Requiere Geyser 2.11.x y enable-custom-content: true.
+# - Los registros de items/skulls se crean al iniciar Geyser.
+#   Después de cambios, reinicia el servidor completo.
+#
+
+item-models:
+  enabled: true
+
+  # Registra TODOS los item_model vanilla como apariencia para estos
+  # materiales base. STICK es el caso principal de MDVCRAFT.
+  #
+  # Ejemplo soportado:
+  # /give @s stick[minecraft:item_model="minecraft:diamond_pickaxe"]
+  # /give @s stick[minecraft:item_model="minecraft:chorus_fruit"]
+  #
+  # Puedes agregar otras bases si las usas, por ejemplo minecraft:apple.
+  # NO pongas todos los materiales aquí: cada base multiplica la cantidad
+  # de definiciones registradas en Bedrock.
+  base-items:
+    - minecraft:stick
+    - minecraft:apple
+
+  # Incluye materiales que también son bloques.
+  include-block-items: true
+
+  # true = para item_model que apunta a un bloque, intenta usar el render 3D
+  # nativo de Bedrock. Esto usa el componente block_placer de Geyser y puede
+  # provocar una predicción visual momentánea de colocación al hacer click.
+  # false = usa icono 2D/fallback.
+  use-3d-block-icons: true
+
+  # Overrides manuales para excepciones Java -> textura vanilla Bedrock.
+  # Formato: minecraft:item=bedrock_texture_path
+  # No pongas .png al final.
+  texture-overrides: []
+  # - minecraft:mi_item=textures/items/ruta_real
+
+  # Overrides cuando el ID de bloque Java y Bedrock no coincidan.
+  # Formato: minecraft:java_block=minecraft:bedrock_block
+  block-id-overrides: []
+
+skulls:
+  enabled: true
+
+  # Busca automáticamente Base64 de texturas de cabezas en configs/plugins.
+  scan-server-files: true
+
+  # Rutas relativas a la raíz del servidor.
+  scan-roots:
+    - plugins
+
+  # Archivos de texto/config que se revisan.
+  text-extensions:
+    - yml
+    - yaml
+    - json
+    - txt
+    - conf
+    - properties
+
+  # También busca strings Base64 incrustados dentro de .jar/.class.
+  # Es útil para cabezas hardcodeadas en plugins propios.
+  scan-jars: true
+
+  # Límites de seguridad para no leer archivos gigantes accidentalmente.
+  max-file-size-mb: 16
+  max-jar-entry-mb: 4
+
+  # Puedes registrar una textura manualmente si no fue detectada.
+  manual-profiles: []
+  # - eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvLi4uIn19fQ==
+
+debug: false
