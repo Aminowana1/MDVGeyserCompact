@@ -1,5 +1,5 @@
 # ==========================================================
-# MDVGeyserCompat 1.0.4
+# MDVGeyserCompat 1.0.5
 # Geyser Extension para MDVCRAFT
 # ==========================================================
 #
@@ -19,7 +19,7 @@ item-models:
   #
   # IMPORTANTE:
   # Antes STICK/APPLE se registraban contra ~1400 modelos cada uno. Eso generaba
-  # miles de definiciones y Geyser terminaba omitiendo muchas. En 1.0.4 este
+  # miles de definiciones y Geyser terminaba omitiendo muchas. En 1.0.5 este
   # modo exacto evita ese problema y tambien reduce el tiempo/pack generado.
   mmoitems-only-mode: true
   mmoitems-folder: plugins/MMOItems/item
@@ -46,10 +46,10 @@ item-models:
 
   include-block-items: true
 
-  # 1.0.4: para item_model que apuntan a BLOQUES vanilla, usa el render nativo
-  # del bloque Bedrock siempre que sea posible. Esto evita missing textures con
-  # BAMBOO, MOSS_BLOCK, LIGHTNING_ROD, FROGLIGHT, REDSTONE_BLOCK, etc.
-  use-3d-block-icons: true
+  # Compatibilidad heredada. 1.0.5 NO usa block_placer para la apariencia,
+  # porque puede suprimir el icono de custom items. Los bloques se muestran
+  # mediante una textura explicita y segura en Bedrock.
+  use-3d-block-icons: false
 
   # Overrides manuales Java item_model -> textura vanilla Bedrock.
   texture-overrides: []

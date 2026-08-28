@@ -6,7 +6,7 @@
 
     <groupId>com.mdvcraft</groupId>
     <artifactId>MDVGeyserCompat</artifactId>
-    <version>1.0.4</version>
+    <version>1.0.5</version>
     <name>MDVGeyserCompat</name>
     <description>Geyser extension for MDVCRAFT item_model and Base64 custom skull compatibility.</description>
 

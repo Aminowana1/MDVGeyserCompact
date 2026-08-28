@@ -8,7 +8,7 @@ import java.util.Locale;
 
 final class VanillaMaterialRegistry {
     /**
-     * solid se conserva como metadato diagnostico/fallback. En 1.0.4 la
+     * solid se conserva como metadato diagnostico/fallback. En 1.0.5 la
      * decision principal es si el target es un bloque vanilla Bedrock.
      */
     record Entry(String id, boolean block, boolean solid) {}

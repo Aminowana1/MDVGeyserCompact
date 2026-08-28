@@ -1,60 +1,47 @@
-# MDVGeyserCompat 1.0.4
+# MDVGeyserCompat 1.0.5
 
 Extension server-side de Geyser para MDVCRAFT (Purpur/Spigot + Geyser 2.11.x).
 
-## 1. `minecraft:item_model` vanilla -> Bedrock
+## Cambio critico de 1.0.5
 
-La 1.0.4 mantiene el escaneo exacto de MMOItems desde:
+La 1.0.4 quitaba el predicate de las definiciones `minecraft:*`. Eso era incorrecto: Geyser exige un predicate cuando el `item_model` esta en el namespace `minecraft`.
+
+La 1.0.5 vuelve a usar `ItemRangeDispatchPredicate.count(1)` para todos los modelos vanilla y elimina el uso de `block_placer` como truco visual. `block_placer` esta pensado para items que colocan bloques y, con `useBlockIcon=true`, Geyser suprime el `minecraft:icon` del custom item.
+
+Ahora todos los pares reales leidos desde:
 
 ```text
 plugins/MMOItems/item/
 ```
 
-y registra solamente los pares reales `material -> model` de tus YAML.
+se registran como:
 
-Ejemplos:
-
-```yaml
-AMBARSILVESTRE:
-  base:
-    material: STICK
-    model: KELP
+```text
+material Java + minecraft:item_model -> custom item Bedrock con icono explicito
 ```
 
-```yaml
-OTROITEM:
-  base:
-    material: STONE_PICKAXE
-    model: BAMBOO
+Incluye fallbacks internos para los casos MDVCRAFT reportados:
+
+```text
+STICK -> KELP
+STONE_PICKAXE -> BAMBOO
+STICK -> MOSS_BLOCK
+STICK -> LIGHTNING_ROD
+STICK -> CHAIN
+STICK -> COAL_BLOCK
+STICK -> OBSIDIAN
+STICK -> OCHRE_FROGLIGHT
+STICK -> PEARLESCENT_FROGLIGHT
+STICK -> VERDANT_FROGLIGHT
+STICK -> REDSTONE_BLOCK
+STICK -> SCUTE
 ```
 
-### Cambio importante de 1.0.4
+`SCUTE` conserva `turtle_shell_piece`, que ya funcionaba en Bedrock.
 
-La 1.0.3 intentaba resolver muchos bloques mediante rutas de textura y ademas agregaba un predicate `count(1)` a todas las definiciones.
+Para bloques se usa una textura de item explicita en el AutoPack en vez de hacer que el custom item finja ser un bloque colocable. Esto prioriza que el item se vea correctamente en inventario, menus, mano y drops.
 
-En 1.0.4:
-
-- cada combinacion `base item + item_model` se registra SIN predicate adicional;
-- los modelos que apuntan a bloques vanilla usan el icono/render nativo del bloque Bedrock mediante `block_placer + useBlockIcon`;
-- `kelp` y `chain` reutilizan directamente los shortnames del atlas vanilla de Bedrock;
-- `scute` / `turtle_scute` usa el shortname historico `turtle_shell_piece` de Bedrock;
-- el AutoPack cambia de UUID para obligar a Bedrock a descargar esta revision y no reutilizar una copia antigua en cache.
-
-Esto apunta directamente a los casos de MDVCRAFT que seguian fallando:
-
-- STICK -> KELP
-- STONE_PICKAXE -> BAMBOO
-- STICK -> MOSS_BLOCK
-- STICK -> LIGHTNING_ROD
-- STICK -> CHAIN
-- STICK -> COAL_BLOCK / OBSIDIAN
-- STICK -> OCHRE/PEARLESCENT/VERDANT_FROGLIGHT
-- STICK -> REDSTONE_BLOCK
-- STICK -> SCUTE
-
-Los bloques ya no dependen de adivinar una PNG del atlas de Bedrock para su icono: Bedrock renderiza su bloque vanilla.
-
-### Reportes
+## Reportes
 
 Se generan:
 
@@ -65,36 +52,26 @@ item-model-failures-report.txt
 item-model-registration-report.txt
 ```
 
-`item-model-registration-report.txt` indica para cada par uno de estos modos:
+Los modos de registro de 1.0.5 son:
 
 ```text
-NATIVE_BLOCK
 VANILLA_ATLAS
-GENERATED_TEXTURE
+EXPLICIT_TEXTURE
 ```
 
-y tambien indica `FAIL` si Geyser rechazo el registro.
+## Custom skulls Base64
 
-## 2. Custom skulls Base64 -> Bedrock
-
-No se cambia el sistema de cabezas de 1.0.3. Sigue usando `skulls-cache.txt` y registra los perfiles Base64 en Geyser.
+El sistema de skulls no cambia. Sigue usando cache y registra los perfiles Base64 en Geyser.
 
 ## Instalacion
 
-Es una extension de Geyser, no un plugin Bukkit normal:
+Es una extension de Geyser:
 
 ```text
-plugins/Geyser-Spigot/extensions/MDVGeyserCompat-1.0.4.jar
+plugins/Geyser-Spigot/extensions/MDVGeyserCompat-1.0.5.jar
 ```
 
-Borra la version anterior y reinicia el servidor completo.
-
-Geyser debe tener:
-
-```yaml
-gameplay:
-  enable-custom-content: true
-```
+Elimina la version anterior y reinicia completamente el servidor.
 
 ## Compilar
 
@@ -107,7 +84,7 @@ mvn clean package
 Salida:
 
 ```text
-target/MDVGeyserCompat-1.0.4.jar
+target/MDVGeyserCompat-1.0.5.jar
 ```
 
-El repositorio incluye `.github/workflows/build.yml` para compilarlo con GitHub Actions.
+Incluye `.github/workflows/build.yml` para GitHub Actions.

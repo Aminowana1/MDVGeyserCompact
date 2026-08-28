@@ -58,7 +58,7 @@ final class VanillaTextureResolver {
         alias("fire_charge", "textures/items/fireball");
 
         // Casos usados por MMOItems de MDVCRAFT.
-        // 1.0.4: cuando Bedrock ya expone un shortname vanilla, lo reutilizamos
+        // 1.0.5: cuando Bedrock ya expone un shortname vanilla, lo reutilizamos
         // directamente. Esto evita missing textures por rutas historicas.
         atlas("kelp", "kelp");
         atlas("chain", "chain");
@@ -79,6 +79,10 @@ final class VanillaTextureResolver {
 
         // Fallback 2D si use-3d-block-icons=false. Con la opcion normal=true
         // estos bloques usan el bloque vanilla Bedrock como icono nativo.
+        // Bamboo en Bedrock es un block item con carried_textures; no tiene un
+        // shortname fiable en atlas.items. Para nuestro custom item usamos una
+        // textura explicita del tallo, que existe en el pack vanilla.
+        alias("bamboo", "textures/blocks/bamboo_stem");
         alias("moss_block", "textures/blocks/moss_block");
         alias("lightning_rod", "textures/blocks/lightning_rod");
         alias("coal_block", "textures/blocks/coal_block");

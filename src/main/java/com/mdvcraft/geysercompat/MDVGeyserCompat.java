@@ -9,8 +9,7 @@ import org.geysermc.geyser.api.event.lifecycle.GeyserPreInitializeEvent;
 import org.geysermc.geyser.api.extension.Extension;
 import org.geysermc.geyser.api.item.custom.v2.CustomItemBedrockOptions;
 import org.geysermc.geyser.api.item.custom.v2.CustomItemDefinition;
-import org.geysermc.geyser.api.item.custom.v2.component.geyser.GeyserBlockPlacer;
-import org.geysermc.geyser.api.item.custom.v2.component.geyser.GeyserItemDataComponents;
+import org.geysermc.geyser.api.predicate.item.ItemRangeDispatchPredicate;
 import org.geysermc.geyser.api.pack.PackCodec;
 import org.geysermc.geyser.api.pack.ResourcePack;
 import org.geysermc.geyser.api.util.Identifier;
@@ -128,7 +127,27 @@ public final class MDVGeyserCompat implements Extension {
 
         // Pares exactos detectados en YAML/JSON/TXT de los plugins.
         ItemModelPairScanner.Result scanned = ItemModelPairScanner.scan(serverRoot, config, validItems);
-        for (Map.Entry<String, Set<String>> pair : scanned.pairs().entrySet()) {
+
+        // 1.0.5: fallback MDVCRAFT para modelos vanilla que sabemos que existen
+        // en MMOItems. Se deduplican con el escaneo normal. Esto evita que un
+        // parser/config antiguo deje fuera justamente los pares mas usados.
+        Map<String, Set<String>> detectedPairs = new LinkedHashMap<>();
+        for (Map.Entry<String, Set<String>> e : scanned.pairs().entrySet()) {
+            detectedPairs.put(e.getKey(), new LinkedHashSet<>(e.getValue()));
+        }
+        forcePair(detectedPairs, validItems, "minecraft:stick", "minecraft:kelp");
+        forcePair(detectedPairs, validItems, "minecraft:stone_pickaxe", "minecraft:bamboo");
+        forcePair(detectedPairs, validItems, "minecraft:stick", "minecraft:moss_block");
+        forcePair(detectedPairs, validItems, "minecraft:stick", "minecraft:lightning_rod");
+        forcePair(detectedPairs, validItems, "minecraft:stick", "minecraft:chain");
+        forcePair(detectedPairs, validItems, "minecraft:stick", "minecraft:coal_block");
+        forcePair(detectedPairs, validItems, "minecraft:stick", "minecraft:obsidian");
+        forcePair(detectedPairs, validItems, "minecraft:stick", "minecraft:ochre_froglight");
+        forcePair(detectedPairs, validItems, "minecraft:stick", "minecraft:pearlescent_froglight");
+        forcePair(detectedPairs, validItems, "minecraft:stick", "minecraft:verdant_froglight");
+        forcePair(detectedPairs, validItems, "minecraft:stick", "minecraft:redstone_block");
+        forcePair(detectedPairs, validItems, "minecraft:stick", "minecraft:scute");
+        for (Map.Entry<String, Set<String>> pair : detectedPairs.entrySet()) {
             String base = pair.getKey();
             if (!validItems.contains(base)) continue;
 
@@ -146,7 +165,7 @@ public final class MDVGeyserCompat implements Extension {
             }
         }
 
-        writePairReport(scanned);
+        writePairReport(scanned, detectedPairs);
         logger().info("item_model: " + scanned.pairCount() + " pares base->modelo detectados en "
                 + scanned.filesScanned() + " archivos (" + scanned.millis() + " ms)." );
 
@@ -160,12 +179,17 @@ public final class MDVGeyserCompat implements Extension {
         return Collections.unmodifiableMap(stable);
     }
 
-    private void writePairReport(ItemModelPairScanner.Result scanned) throws IOException {
+    private static void forcePair(Map<String, Set<String>> pairs, Set<String> validItems, String base, String target) {
+        if (!validItems.contains(base)) return;
+        pairs.computeIfAbsent(base, ignored -> new LinkedHashSet<>()).add(target);
+    }
+
+    private void writePairReport(ItemModelPairScanner.Result scanned, Map<String, Set<String>> pairs) throws IOException {
         List<String> lines = new ArrayList<>();
-        lines.add("# MDVGeyserCompat 1.0.4 - pares item_model detectados automaticamente");
+        lines.add("# MDVGeyserCompat 1.0.5 - pares item_model detectados automaticamente");
         lines.add("# Formato: BASE -> MODELO");
         lines.add("");
-        for (Map.Entry<String, Set<String>> entry : scanned.pairs().entrySet()) {
+        for (Map.Entry<String, Set<String>> entry : pairs.entrySet()) {
             for (String target : entry.getValue()) {
                 lines.add(entry.getKey() + " -> " + target);
             }
@@ -203,42 +227,38 @@ public final class MDVGeyserCompat implements Extension {
                     );
 
                     /*
-                     * 1.0.4: NO usamos un predicate count(1). Para una combinacion
-                     * Java-item + item_model solo puede existir una definicion sin
-                     * predicados, y eso es exactamente lo que tenemos aqui. Evitar
-                     * predicates elimina una capa de matching innecesaria y varios
-                     * casos raros de Geyser con modelos vanilla.
+                     * IMPORTANTE: Geyser v2 exige predicate cuando el item_model
+                     * esta en el namespace minecraft. Estos modelos (kelp, bamboo,
+                     * moss_block, chain, redstone_block, etc.) son precisamente
+                     * minecraft:*. count(1) coincide con cualquier stack real sin
+                     * modificar el ItemStack Java.
                      */
+                    if (target.id().startsWith("minecraft:")) {
+                        definition.predicate(ItemRangeDispatchPredicate.count(1));
+                    }
 
-                    boolean nativeBlockIcon = VanillaTextureResolver.useNativeBlockIcon(
-                            target, config.use3dBlockIcons);
+                    /*
+                     * 1.0.5: no usamos BLOCK_PLACER para apariencia. En Bedrock
+                     * ese componente esta pensado para items que COLOCAN bloques y
+                     * ademas suprime minecraft:icon cuando useBlockIcon=true. Para
+                     * un STICK/STONE_PICKAXE que solo cambia visualmente, queremos
+                     * SIEMPRE un icono explicito.
+                     */
                     String vanillaAtlas = VanillaTextureResolver.vanillaAtlasIconKey(target.id());
+                    String icon = vanillaAtlas != null
+                            ? vanillaAtlas
+                            : VanillaTextureResolver.iconKey(base, target.id());
 
                     CustomItemBedrockOptions.Builder bedrock = CustomItemBedrockOptions.builder()
                             .allowOffhand(true)
-                            .displayHandheld(VanillaTextureResolver.displayHandheld(target.id()));
-
-                    if (nativeBlockIcon) {
-                        String bedrockBlock = config.blockIdOverrides.getOrDefault(target.id(), target.id());
-                        definition.component(
-                                GeyserItemDataComponents.BLOCK_PLACER,
-                                GeyserBlockPlacer.of(Identifier.of(bedrockBlock), true)
-                        );
-                        // No se envia icon: Geyser usara el render nativo del bloque.
-                    } else if (vanillaAtlas != null) {
-                        // Reutiliza el shortname del atlas vanilla de Bedrock.
-                        bedrock.icon(vanillaAtlas);
-                    } else {
-                        // Fallback para herramientas/items cuyo atlas necesita una
-                        // ruta concreta (diamond_sword, gold_axe, etc.).
-                        bedrock.icon(VanillaTextureResolver.iconKey(base, target.id()));
-                    }
+                            .displayHandheld(VanillaTextureResolver.displayHandheld(target.id()))
+                            .icon(icon);
 
                     definition.bedrockOptions(bedrock);
                     event.register(baseId, definition.build());
                     registered++;
                     registrationReport.add(base + " -> " + target.id() + " :: OK :: "
-                            + VanillaTextureResolver.appearanceMode(target, config.use3dBlockIcons));
+                            + (VanillaTextureResolver.vanillaAtlasIconKey(target.id()) != null ? "VANILLA_ATLAS" : "EXPLICIT_TEXTURE"));
                 } catch (Throwable throwable) {
                     failed++;
                     String reason = throwable.getClass().getSimpleName() + ": "
@@ -255,15 +275,15 @@ public final class MDVGeyserCompat implements Extension {
 
         try {
             List<String> report = new ArrayList<>();
-            report.add("# MDVGeyserCompat 1.0.4 - definiciones que Geyser no pudo registrar");
+            report.add("# MDVGeyserCompat 1.0.5 - definiciones que Geyser no pudo registrar");
             report.add("# Si queda vacio debajo de esta linea, no hubo omisiones.");
             report.add("");
             report.addAll(failureReport);
             Files.write(dataFolder().resolve("item-model-failures-report.txt"), report, StandardCharsets.UTF_8);
 
             List<String> reg = new ArrayList<>();
-            reg.add("# MDVGeyserCompat 1.0.4 - resultado de registro por item_model");
-            reg.add("# Modos: NATIVE_BLOCK, VANILLA_ATLAS, GENERATED_TEXTURE");
+            reg.add("# MDVGeyserCompat 1.0.5 - resultado de registro por item_model");
+            reg.add("# Modos: VANILLA_ATLAS, EXPLICIT_TEXTURE");
             reg.add("");
             reg.addAll(registrationReport);
             Files.write(dataFolder().resolve("item-model-registration-report.txt"), reg, StandardCharsets.UTF_8);
