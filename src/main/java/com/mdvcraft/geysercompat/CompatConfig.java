@@ -21,9 +21,21 @@ final class CompatConfig {
 
     /**
      * Bases "amplias": para cada una se registran TODOS los modelos vanilla.
-     * Se mantienen STICK y APPLE porque son los casos de prueba/uso general de MDVCRAFT.
+     *
+     * En MDVCRAFT 1.0.3 quedan VACIAS por defecto. Registrar STICK x ~1400 modelos
+     * provocaba miles de definiciones innecesarias y Geyser terminaba omitiendo
+     * una parte. Ahora se registran solamente los pares que existen de verdad
+     * dentro de plugins/MMOItems/item.
      */
-    final List<String> baseItems = new ArrayList<>(List.of("minecraft:stick", "minecraft:apple"));
+    final List<String> baseItems = new ArrayList<>();
+
+    /**
+     * Modo recomendado para MDVCRAFT. Ignora las bases amplias antiguas del
+     * config 1.0.2 y limita el escaneo a la carpeta real donde viven los items.
+     * Esto tambien hace que una config vieja siga siendo segura al actualizar.
+     */
+    boolean mmoItemsOnlyMode = true;
+    String mmoItemsFolder = "plugins/MMOItems/item";
 
     /**
      * Desde 1.0.2 detectamos pares material+model en configs y registramos solo esos pares.
@@ -31,8 +43,8 @@ final class CompatConfig {
      * base manualmente en base-items ni explotar la cantidad de custom items.
      */
     boolean autoDetectPairs = true;
-    final List<String> pairScanRoots = new ArrayList<>(List.of("plugins"));
-    final Set<String> pairScanExtensions = new HashSet<>(Set.of("yml", "yaml", "json", "txt", "conf", "properties"));
+    final List<String> pairScanRoots = new ArrayList<>(List.of("plugins/MMOItems/item"));
+    final Set<String> pairScanExtensions = new HashSet<>(Set.of("yml", "yaml"));
     int pairScanMaxFileSizeMb = 16;
     final List<String> manualPairs = new ArrayList<>();
 
@@ -104,6 +116,8 @@ final class CompatConfig {
                         case "include-block-items" -> cfg.includeBlockItems = bool(value, cfg.includeBlockItems);
                         case "use-3d-block-icons" -> cfg.use3dBlockIcons = bool(value, cfg.use3dBlockIcons);
                         case "auto-detect-pairs" -> cfg.autoDetectPairs = bool(value, cfg.autoDetectPairs);
+                        case "mmoitems-only-mode" -> cfg.mmoItemsOnlyMode = bool(value, cfg.mmoItemsOnlyMode);
+                        case "mmoitems-folder" -> cfg.mmoItemsFolder = unquote(value);
                         case "pair-scan-max-file-size-mb" -> cfg.pairScanMaxFileSizeMb = integer(value, cfg.pairScanMaxFileSizeMb);
                         case "base-items" -> {
                             if (!baseItemsSeen) {
@@ -187,8 +201,25 @@ final class CompatConfig {
             }
         }
 
-        if (cfg.baseItems.isEmpty()) cfg.baseItems.add("minecraft:stick");
-        if (cfg.pairScanRoots.isEmpty()) cfg.pairScanRoots.add("plugins");
+        /*
+         * Compatibilidad de actualizacion:
+         * una config 1.0.2 puede seguir teniendo base-items: STICK/APPLE y
+         * pair-scan-roots: plugins. Con mmoitems-only-mode=true no queremos
+         * volver a registrar miles de definiciones ni escanear 1500+ archivos.
+         */
+        if (cfg.mmoItemsOnlyMode) {
+            cfg.baseItems.clear();
+            cfg.pairScanRoots.clear();
+            cfg.pairScanRoots.add(cfg.mmoItemsFolder == null || cfg.mmoItemsFolder.isBlank()
+                    ? "plugins/MMOItems/item"
+                    : cfg.mmoItemsFolder);
+            cfg.pairScanExtensions.clear();
+            cfg.pairScanExtensions.add("yml");
+            cfg.pairScanExtensions.add("yaml");
+        } else if (cfg.pairScanRoots.isEmpty()) {
+            cfg.pairScanRoots.add("plugins/MMOItems/item");
+        }
+
         if (cfg.scanRoots.isEmpty()) cfg.scanRoots.add("plugins");
         return cfg;
     }

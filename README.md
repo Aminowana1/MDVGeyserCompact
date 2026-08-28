@@ -1,74 +1,90 @@
-# MDVGeyserCompat 1.0.2
+# MDVGeyserCompat 1.0.3
 
 Extension server-side de Geyser para MDVCRAFT (Purpur/Spigot + Geyser 2.11.x).
 
 ## 1. `minecraft:item_model` vanilla -> Bedrock
 
-Replica en Bedrock los items Java que cambian visualmente mediante `minecraft:item_model`.
+La 1.0.3 cambia la estrategia de registro para MDVCRAFT.
 
-### Bases amplias
+Todos los items con `item_model` se leen directamente desde:
 
-Por defecto `STICK` y `APPLE` pueden verse como cualquier item/bloque vanilla:
-
-```mcfunction
-/give @s minecraft:stick[minecraft:item_model="minecraft:diamond_pickaxe"]
-/give @s minecraft:stick[minecraft:item_model="minecraft:sunflower"]
-/give @s minecraft:apple[minecraft:item_model="minecraft:chorus_fruit"]
+```text
+plugins/MMOItems/item/
 ```
 
-### Deteccion automatica de pares (nuevo 1.0.2)
+y se registran solamente los pares reales `material -> model` de los YAML.
 
-La 1.0.1 solo registraba las bases listadas en `base-items`. Por eso un item cuya base real era
-`TRIDENT`, `STONE_PICKAXE`, `PAPER`, `SALMON`, etc. se quedaba con la apariencia de su item base.
-
-La 1.0.2 escanea configs YAML/JSON/TXT y registra solo los pares usados, por ejemplo:
+Ejemplos:
 
 ```yaml
-material: TRIDENT
-model: diamond_axe
+AMBARSILVESTRE:
+  base:
+    material: STICK
+    model: KELP
 ```
 
 ```yaml
-material: STONE_PICKAXE
-model: bamboo
+OTROITEM:
+  base:
+    material: STONE_PICKAXE
+    model: BAMBOO
 ```
+
+Esto evita registrar `STICK x ~1400 modelos`, que en 1.0.2 producia miles de definiciones y hacia que Geyser omitiera muchas.
+
+La config por defecto usa:
 
 ```yaml
-material: PAPER
-model: tripwire_hook
+item-models:
+  mmoitems-only-mode: true
+  mmoitems-folder: plugins/MMOItems/item
 ```
 
-No se registra la matriz TODOS x TODOS (serian millones de definiciones); las bases amplias cubren
-los comodines y el escaner agrega los pares reales del servidor.
+Incluso si conservas una config 1.0.2 con `base-items: STICK/APPLE`, el modo MMOItems de 1.0.3 los ignora para evitar volver al registro masivo.
 
-Si un item se crea exclusivamente por codigo y no aparece en ninguna config, se puede agregar:
+### Casos vanilla corregidos
+
+Se añadieron equivalencias explicitas Bedrock para:
+
+- kelp
+- bamboo
+- moss_block
+- lightning_rod
+- chain
+- coal_block
+- obsidian
+- redstone_block
+- glowstone
+- ochre/pearlescent/verdant_froglight
+- scute / turtle_scute
+
+Tambien se permite registrar un `item_model` aunque no corresponda exactamente a un `Material` Bukkit actual. Esto cubre nombres de modelo legacy como `minecraft:scute`.
+
+### Reportes
+
+Se generan:
+
+```text
+item-model-pairs-report.txt
+item-texture-report.txt
+item-model-failures-report.txt
+```
+
+`item-model-failures-report.txt` muestra exactamente cualquier definicion que Geyser haya rechazado.
+
+Si un item se genera por codigo y no existe en `plugins/MMOItems/item`, puede agregarse manualmente:
 
 ```yaml
 item-models:
   manual-pairs:
-    - minecraft:stone_pickaxe=>minecraft:feather
+    - minecraft:paper=>minecraft:tripwire_hook
 ```
-
-Se genera `item-model-pairs-report.txt` para ver los pares detectados.
-
-### Plantas y bloques
-
-Desde 1.0.2 solo los bloques solidos usan `block_placer`/render 3D de Bedrock. Plantas, flores,
-bambu, tripwire hook y otros bloques no solidos usan sus texturas carried/planas. Esto evita
-missing textures morado/negro y modelos incorrectos en inventarios/menus.
-
-Se ampliaron equivalencias vanilla para sunflower, bamboo, tripwire hook, flores dobles, flores
-normales, pitcher plant, torchflower, pink petals, wildflowers, firefly bush y otros items modernos.
-
-La extension genera automaticamente `MDVGeyserCompat-AutoPack.mcpack` y
-`item-texture-report.txt`.
 
 ## 2. Custom skulls Base64 -> Bedrock
 
-Busca perfiles Base64 de `textures.minecraft.net`, los registra en Geyser y los cachea en
-`skulls-cache.txt`. Funcionan en menus/inventarios, en mano, equipados por jugadores y mobs.
+Se mantiene el sistema de 1.0.2: busca perfiles Base64, los registra en Geyser y usa `skulls-cache.txt` para que los reinicios sean rapidos.
 
-Para reconstruir la cache de cabezas:
+Para reconstruir la cache:
 
 ```yaml
 skulls:
@@ -79,15 +95,15 @@ reinicia una vez y vuelve a `false`.
 
 ## Instalacion
 
-No es un plugin Bukkit normal. Copia el JAR a:
+Este JAR es una extension de Geyser, no un plugin Bukkit normal:
 
 ```text
-plugins/Geyser-Spigot/extensions/MDVGeyserCompat-1.0.2.jar
+plugins/Geyser-Spigot/extensions/MDVGeyserCompat-1.0.3.jar
 ```
 
-Borra la version anterior para no cargar dos extensiones con el mismo ID y haz un reinicio completo.
+Borra la version anterior y reinicia el servidor completo.
 
-En Geyser debe estar:
+Geyser debe tener:
 
 ```yaml
 enable-custom-content: true
@@ -104,5 +120,7 @@ mvn clean package
 Salida:
 
 ```text
-target/MDVGeyserCompat-1.0.2.jar
+target/MDVGeyserCompat-1.0.3.jar
 ```
+
+El repositorio incluye `.github/workflows/build.yml` para compilarlo con GitHub Actions.

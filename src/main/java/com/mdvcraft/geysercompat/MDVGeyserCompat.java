@@ -94,13 +94,10 @@ public final class MDVGeyserCompat implements Extension {
     }
 
     /**
-     * 1.0.2: las bases amplias (STICK/APPLE por defecto) siguen soportando todos
-     * los targets. Ademas se escanean las configs del servidor para detectar
-     * combinaciones reales como STONE_PICKAXE->BAMBOO, TRIDENT->DIAMOND_AXE,
-     * PAPER->TRIPWIRE_HOOK, SALMON->GOLDEN_APPLE, etc.
-     *
-     * Registrar TODOS x TODOS seria mas de un millon de custom items; detectar
-     * los pares usados nos da el mismo resultado practico sin castigar Geyser.
+     * 1.0.3: MDVCRAFT usa deteccion exacta desde plugins/MMOItems/item.
+     * Las bases amplias quedan disponibles solo si mmoitems-only-mode=false.
+     * Esto evita registrar miles de definiciones innecesarias y que Geyser
+     * termine omitiendo modelos que el servidor realmente usa.
      */
     private Map<String, List<VanillaMaterialRegistry.Entry>> buildItemModelPlan(
             List<VanillaMaterialRegistry.Entry> targets) throws IOException {
@@ -140,7 +137,11 @@ public final class MDVGeyserCompat implements Extension {
                     mutable.computeIfAbsent(base, ignored -> new LinkedHashSet<>());
             for (String targetId : pair.getValue()) {
                 VanillaMaterialRegistry.Entry target = byId.get(targetId);
-                if (target == null) continue;
+                if (target == null) {
+                    // item_model es un recurso, no necesariamente un Material Bukkit.
+                    // Mantener el ID exacto permite casos vanilla/legacy como minecraft:scute.
+                    target = new VanillaMaterialRegistry.Entry(targetId, false, false);
+                }
                 if (!config.includeBlockItems && target.block()) continue;
                 if (!target.id().equals(base)) entries.add(target);
             }
@@ -162,7 +163,7 @@ public final class MDVGeyserCompat implements Extension {
 
     private void writePairReport(ItemModelPairScanner.Result scanned) throws IOException {
         List<String> lines = new ArrayList<>();
-        lines.add("# MDVGeyserCompat 1.0.2 - pares item_model detectados automaticamente");
+        lines.add("# MDVGeyserCompat 1.0.3 - pares item_model detectados automaticamente");
         lines.add("# Formato: BASE -> MODELO");
         lines.add("");
         for (Map.Entry<String, Set<String>> entry : scanned.pairs().entrySet()) {
@@ -179,6 +180,7 @@ public final class MDVGeyserCompat implements Extension {
 
         int registered = 0;
         int failed = 0;
+        List<String> failureReport = new ArrayList<>();
 
         for (Map.Entry<String, List<VanillaMaterialRegistry.Entry>> planned : itemModelPlan.entrySet()) {
             String base = planned.getKey();
@@ -210,7 +212,7 @@ public final class MDVGeyserCompat implements Extension {
                             .icon(VanillaTextureResolver.iconKey(base, target.id()));
 
                     /*
-                     * IMPORTANTE 1.0.2:
+                     * IMPORTANTE 1.0.3:
                      * Girasoles, bambu, flores, tripwire hook y otros bloques no
                      * solidos NO deben usar el block icon 3D de Bedrock. Hacerlo
                      * producia modelos equivocados/missing texture, especialmente
@@ -229,6 +231,9 @@ public final class MDVGeyserCompat implements Extension {
                     registered++;
                 } catch (Throwable throwable) {
                     failed++;
+                    String reason = throwable.getClass().getSimpleName() + ": "
+                            + String.valueOf(throwable.getMessage());
+                    failureReport.add(base + " -> " + target.id() + " :: " + reason);
                     if (config.debug) {
                         logger().warning("No se pudo registrar " + base + " -> " + target.id()
                                 + ": " + throwable.getMessage());
@@ -237,8 +242,18 @@ public final class MDVGeyserCompat implements Extension {
             }
         }
 
+        try {
+            List<String> report = new ArrayList<>();
+            report.add("# MDVGeyserCompat 1.0.3 - definiciones que Geyser no pudo registrar");
+            report.add("# Si queda vacio debajo de esta linea, no hubo omisiones.");
+            report.add("");
+            report.addAll(failureReport);
+            Files.write(dataFolder().resolve("item-model-failures-report.txt"), report, StandardCharsets.UTF_8);
+        } catch (IOException ignored) {
+        }
+
         logger().info("item_model: " + registered + " definiciones Bedrock registradas"
-                + (failed > 0 ? " (" + failed + " omitidas)" : "") + ".");
+                + (failed > 0 ? " (" + failed + " omitidas; ver item-model-failures-report.txt)" : "") + ".");
     }
 
     @Subscribe

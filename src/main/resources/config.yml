@@ -1,5 +1,5 @@
 # ==========================================================
-# MDVGeyserCompat 1.0.2
+# MDVGeyserCompat 1.0.3
 # Geyser Extension para MDVCRAFT
 # ==========================================================
 #
@@ -14,59 +14,47 @@
 item-models:
   enabled: true
 
-  # Bases "amplias": estas pueden verse como CUALQUIER item/bloque vanilla.
-  # STICK es la base principal de MDVCRAFT; APPLE queda por compat/pruebas.
+  # MDVCRAFT: todos los item_model reales viven en plugins/MMOItems/item.
+  # Este modo registra SOLO los pares material+model que encuentre en esos YAML.
   #
-  # NO pongas todos los materiales aqui: cada base amplia registra ~1400
-  # definiciones. Para TRIDENT, STONE_PICKAXE, PAPER, comida, etc. la 1.0.2
-  # detecta automaticamente solo los pares que realmente usas en configs.
-  base-items:
-    - minecraft:stick
-    - minecraft:apple
+  # IMPORTANTE:
+  # Antes STICK/APPLE se registraban contra ~1400 modelos cada uno. Eso generaba
+  # miles de definiciones y Geyser terminaba omitiendo muchas. En 1.0.3 este
+  # modo exacto evita ese problema y tambien reduce el tiempo/pack generado.
+  mmoitems-only-mode: true
+  mmoitems-folder: plugins/MMOItems/item
 
-  # Detecta material + model/item_model en YAML/JSON/TXT del servidor.
-  # Ejemplos que ya no necesitan ir en base-items:
-  #   material: TRIDENT       + model: diamond_axe
-  #   material: STONE_PICKAXE + model: bamboo
-  #   material: PAPER         + model: tripwire_hook
+  # Solo se usan si mmoitems-only-mode=false.
+  base-items: []
+
   auto-detect-pairs: true
 
+  # Solo se usan si mmoitems-only-mode=false.
   pair-scan-roots:
-    - plugins
+    - plugins/MMOItems/item
 
   pair-scan-extensions:
     - yml
     - yaml
-    - json
-    - txt
-    - conf
-    - properties
 
   pair-scan-max-file-size-mb: 16
 
-  # Para una combinacion creada por codigo y no visible en configs, agregala aca.
-  # Formato BASE=>MODELO. Solo registra ese par, no 1400 modelos.
+  # Para una combinacion creada por codigo y que NO exista en MMOItems/item.
+  # Formato BASE=>MODELO.
   manual-pairs: []
-  # - minecraft:stone_pickaxe=>minecraft:feather
   # - minecraft:paper=>minecraft:tripwire_hook
-  # - minecraft:salmon=>minecraft:golden_apple
 
-  # Incluye materiales que tambien son bloques.
   include-block-items: true
 
-  # Solo los bloques SOLIDOS usan el render 3D de bloque Bedrock.
-  # Plantas/flores/bambu/tripwire/etc. usan icono plano/carry para evitar
-  # missing textures y modelos equivocados, sobre todo en menus.
+  # Los bloques solidos pueden conservar render 3D al sostener/dropear.
+  # El icono de menu se genera aparte desde la textura Bedrock correspondiente.
   use-3d-block-icons: true
 
-  # Overrides manuales Java -> textura vanilla Bedrock.
-  # Formato: minecraft:item=bedrock_texture_path (sin .png)
+  # Overrides manuales Java item_model -> textura vanilla Bedrock.
   texture-overrides: []
-  # - minecraft:mi_item=textures/items/ruta_real
-  # - minecraft:mi_bloque=textures/blocks/ruta_real
+  # - minecraft:lightning_rod=textures/blocks/lightning_rod
 
   # Overrides cuando el ID de bloque Java y Bedrock no coincidan.
-  # Solo afecta al componente 3D de bloques SOLIDOS.
   block-id-overrides: []
 
 skulls:

@@ -51,6 +51,28 @@ final class VanillaTextureResolver {
         alias("fermented_spider_eye", "textures/items/spider_eye_fermented");
         alias("fire_charge", "textures/items/fireball");
 
+        // Casos usados por MMOItems de MDVCRAFT.
+        // Mojang Bedrock conserva kelp/chain/bamboo como iconos de item.
+        alias("kelp", "textures/items/kelp");
+        alias("bamboo", "textures/items/bamboo");
+        alias("chain", "textures/items/chain");
+
+        // Scute fue renombrado en versiones modernas. Aceptamos ambos nombres de modelo.
+        alias("scute", "textures/items/turtle_scute");
+        alias("turtle_scute", "textures/items/turtle_scute");
+
+        // Bloques usados como item_model: el icono del custom item puede apuntar
+        // directamente a una textura del atlas de bloques de Bedrock.
+        alias("moss_block", "textures/blocks/moss_block");
+        alias("lightning_rod", "textures/blocks/lightning_rod");
+        alias("coal_block", "textures/blocks/coal_block");
+        alias("obsidian", "textures/blocks/obsidian");
+        alias("redstone_block", "textures/blocks/redstone_block");
+        alias("glowstone", "textures/blocks/glowstone");
+        alias("ochre_froglight", "textures/blocks/ochre_froglight_side");
+        alias("pearlescent_froglight", "textures/blocks/pearlescent_froglight_side");
+        alias("verdant_froglight", "textures/blocks/verdant_froglight_side");
+
         // Libros, botellas y pociones.
         alias("book", "textures/items/book_normal");
         alias("enchanted_book", "textures/items/book_enchanted");
@@ -108,7 +130,6 @@ final class VanillaTextureResolver {
 
         // Items que Bukkit considera bloque pero cuya representacion de inventario
         // en Bedrock vive en el atlas de items o usa un nombre legacy.
-        alias("bamboo", "textures/items/bamboo");
         alias("tripwire_hook", "textures/blocks/trip_wire_source");
         alias("campfire", "textures/items/campfire");
         alias("soul_campfire", "textures/items/soul_campfire");
@@ -117,7 +138,6 @@ final class VanillaTextureResolver {
         alias("bell", "textures/items/villagebell");
         alias("sea_pickle", "textures/items/sea_pickle");
         alias("turtle_egg", "textures/items/turtle_egg");
-        alias("chain", "textures/items/chain");
         alias("lever", "textures/items/lever");
         alias("brewing_stand", "textures/items/brewing_stand");
         alias("cauldron", "textures/items/cauldron");

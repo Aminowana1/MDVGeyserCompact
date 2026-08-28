@@ -34,8 +34,12 @@ final class ItemModelPairScanner {
     private static final Pattern INLINE_JSON_MODEL = Pattern.compile(
             "(?i)\\\"?item_model\\\"?\\s*[:=]\\s*[\\\"'](?:minecraft:)?([a-z0-9_]+)[\\\"']");
 
+    /*
+     * Para MMOItems la base real es "material". No usamos claves genericas como
+     * "id" o "item" porque aparecen en abilities/recipes y generaban pares falsos.
+     */
     private static final Set<String> BASE_KEYS = Set.of(
-            "material", "id", "item", "item-material", "item_material", "itemmaterial");
+            "material", "item-material", "item_material", "itemmaterial");
     private static final Set<String> MODEL_KEYS = Set.of(
             "model", "item-model", "item_model", "itemmodel", "item-model-id", "item_model_id");
 
@@ -166,7 +170,7 @@ final class ItemModelPairScanner {
                 }
             } else if (MODEL_KEYS.contains(key)) {
                 String candidate = normalizeCandidate(scalar);
-                if (validItems.contains(candidate)) {
+                if (isValidModelId(candidate)) {
                     data.model = candidate;
                     if (data.base != null) addPair(data.base, data.model, validItems, pairs);
                 }
@@ -242,7 +246,13 @@ final class ItemModelPairScanner {
                                 Set<String> validItems,
                                 Map<String, Set<String>> pairs) {
         if (base == null || target == null || base.equals(target)) return;
-        if (!validItems.contains(base) || !validItems.contains(target)) return;
+        /*
+         * La BASE si debe ser un item Java real. El item_model, en cambio, es
+         * un identificador de modelo y no necesariamente un Material Bukkit.
+         * Ejemplo: minecraft:scute puede seguir siendo un item_model valido
+         * aunque el item moderno se llame minecraft:turtle_scute.
+         */
+        if (!validItems.contains(base) || !isValidModelId(target)) return;
         pairs.computeIfAbsent(base, ignored -> new LinkedHashSet<>()).add(target);
     }
 
@@ -252,6 +262,12 @@ final class ItemModelPairScanner {
         if (v.startsWith("minecraft:")) return v;
         if (!v.matches("[a-z0-9_./-]+")) return "";
         return "minecraft:" + v;
+    }
+
+    private static boolean isValidModelId(String value) {
+        if (value == null || value.isBlank()) return false;
+        String v = value.toLowerCase(Locale.ROOT);
+        return v.matches("[a-z0-9_.-]+:[a-z0-9_./-]+");
     }
 
     private static String cleanScalar(String value) {
